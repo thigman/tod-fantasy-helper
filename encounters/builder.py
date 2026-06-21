@@ -27,9 +27,12 @@ def build_encounter():
         print("\n=== ENCOUNTER BUILDER ===")
 
         if enemies:
+
             for enemy in enemies:
                 print(enemy.name)
+
         else:
+
             print("No enemies yet.")
 
         print()

@@ -1,7 +1,7 @@
 import random
 
 
-def roll(expr: str) -> int:
+def roll(expr):
     n, s = map(int, expr.split("d"))
 
     return sum(

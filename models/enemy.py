@@ -16,6 +16,7 @@ class Enemy:
 
     str_: int
     dex: int
+
     ms: int
 
     morale: int
