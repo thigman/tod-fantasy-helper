@@ -107,3 +107,18 @@ Phase 7:
 ## Notes
 
 SPD removed from Enemy model.
+
+Next Session Prompt
+When you come back, you can basically say:
+
+I have the Fantasy Battle Master repo.
+
+Current state:
+
+- Refactor 3 baseline
+- models extracted
+- ui extracted
+- combat.py exists
+- SPD removed
+
+Help me continue implementing combat.py starting with round tracking and status display.
