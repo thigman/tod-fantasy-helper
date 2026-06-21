@@ -1,24 +1,39 @@
 from encounters.builder import build_encounter
-from engine.ui import menu
+from engine.combat import run_combat
+
+from models.hero import Hero
+from models.weapon import Weapon
 
 
 def main():
 
-    menu(
-        "Test Menu",
-        [
-            "Continue"
-        ]
+    fightersword = Weapon(
+        "LSWD",
+        "1d8",
+        2,
     )
+
+    heroes = [
+        Hero(
+            "Fighter",
+            25,
+            25,
+            4,
+            7,
+            5,
+            7,
+            1,
+            2,
+            fightersword,
+        )
+    ]
 
     enemies = build_encounter()
 
-    print()
-    print("Encounter Created")
-    print()
-
-    for enemy in enemies:
-        print(enemy.name)
+    run_combat(
+        heroes,
+        enemies,
+    )
 
 
 if __name__ == "__main__":

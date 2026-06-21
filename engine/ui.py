@@ -74,7 +74,6 @@ def show_enemies(enemies):
             f"DEX{enemy.dex} "
             f"MS{enemy.ms} "
             f"ARM{enemy.arm} "
-            f"SPD{enemy.spd} "
             f"{enemy.weapon.name}"
             f"({enemy.weapon.damage}) "
             f"{enemy.rng.value}"
