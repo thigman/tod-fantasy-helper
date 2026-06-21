@@ -1,7 +1,16 @@
 from encounters.builder import build_encounter
+from engine.ui import menu
 
 
 def main():
+
+    menu(
+        "Test Menu",
+        [
+            "Continue"
+        ]
+    )
+
     enemies = build_encounter()
 
     print()

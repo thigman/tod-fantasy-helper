@@ -7,10 +7,10 @@ def menu(title, items):
     while True:
 
         try:
-            choice = int(input("> "))
+            value = int(input("> "))
 
-            if 1 <= choice <= len(items):
-                return choice - 1
+            if 1 <= value <= len(items):
+                return value - 1
 
         except:
             pass
