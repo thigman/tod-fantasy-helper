@@ -12,7 +12,6 @@ class Enemy:
     max_hp: int
 
     arm: int
-    spd: int
 
     str_: int
     dex: int
