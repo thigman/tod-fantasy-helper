@@ -9,6 +9,8 @@ from engine.ai import choose_focus
 
 from models.enums import RangeBand
 
+import random
+
 
 def remove_dead(enemies):
 
@@ -17,6 +19,28 @@ def remove_dead(enemies):
         for enemy in enemies
         if enemy.hp > 0
     ]
+
+
+def show_battlefield(
+    heroes,
+    enemies,
+    acted,
+):
+
+    print()
+    print("HEROES")
+
+    show_heroes(
+        heroes,
+        acted,
+    )
+
+    print()
+    print("ENEMIES")
+
+    show_enemies(
+        enemies,
+    )
 
 
 def set_enemy_range(enemies):
@@ -48,6 +72,7 @@ def hero_attack(
     heroes,
     enemies,
     acted,
+    log,
 ):
 
     available = [
@@ -58,7 +83,11 @@ def hero_attack(
     ]
 
     if not available:
-        print("No heroes available.")
+
+        print(
+            "No heroes available."
+        )
+
         return
 
     hero = available[
@@ -75,7 +104,24 @@ def hero_attack(
         )
     ]
 
+    #
+    # Wizard spells require OOM
+    #
+
     if hero.name == "Wizard":
+
+        if enemy.rng != RangeBand.OOM:
+
+            msg = (
+                f"{hero.name} cannot cast on "
+                f"{enemy.name}. "
+                f"Target must be OOM."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            return
 
         spell = menu(
             "Spell",
@@ -86,20 +132,64 @@ def hero_attack(
         )
 
         if spell == 0:
+
             damage_expr = "1d8"
             pen = 2
+
         else:
+
             damage_expr = "2d8"
             pen = 0
+
+        hit = (
+            random.randint(1, 20)
+            + hero.intel
+            >= 10 + enemy.dex
+        )
+
+    #
+    # Melee heroes require MEL
+    #
 
     else:
 
         if enemy.rng != RangeBand.MEL:
-            print("Target not in melee.")
+
+            msg = (
+                f"{hero.name} cannot attack "
+                f"{enemy.name}. "
+                f"Target must be MEL."
+            )
+
+            print(msg)
+            log.append(msg)
+
             return
 
         damage_expr = hero.weapon.damage
         pen = hero.weapon.pen
+
+        hit = (
+            random.randint(1, 20)
+            + hero.ms
+            >= 10 + enemy.ms
+        )
+
+    acted.add(
+        hero.name
+    )
+
+    if not hit:
+
+        msg = (
+            f"{hero.name} misses "
+            f"{enemy.name}"
+        )
+
+        print(msg)
+        log.append(msg)
+
+        return
 
     damage = max(
         1,
@@ -111,40 +201,38 @@ def hero_attack(
     )
 
     enemy.hp -= damage
+
     hero.damage_done += damage
 
-    acted.add(hero.name)
-
-    print(
+    msg = (
         f"{hero.name} hits "
         f"{enemy.name} "
         f"for {damage}"
     )
 
+    print(msg)
+    log.append(msg)
+
     if enemy.hp <= 0:
 
-        print(
+        msg = (
             f"{enemy.name} "
             f"is defeated!"
         )
+
+        print(msg)
+        log.append(msg)
 
 
 def enemy_turn(
     heroes,
     enemies,
+    acted,
+    log,
 ):
 
     print()
     print("=== ENEMY TURN ===")
-
-    living_heroes = [
-        hero
-        for hero in heroes
-        if hero.hp > 0
-    ]
-
-    if not living_heroes:
-        return
 
     for enemy in enemies:
 
@@ -190,36 +278,158 @@ def enemy_turn(
 
             enemy.focus_rounds = 2
 
-        damage = max(
-            1,
-            roll(
-                enemy.weapon.damage
+        #
+        # Archers withdraw from melee
+        #
+
+        if (
+            enemy.weapon.name == "BOW"
+            and enemy.rng == RangeBand.MEL
+        ):
+
+            enemy.rng = RangeBand.OOM
+
+            msg = (
+                f"{enemy.name} withdraws "
+                f"from melee."
             )
-            - max(
-                current_target.arm
-                - enemy.weapon.pen,
-                0,
-            ),
+
+            print(msg)
+            log.append(msg)
+
+            continue
+
+        #
+        # Warriors advance into melee
+        #
+
+        if (
+            enemy.weapon.name == "AXE"
+            and enemy.rng == RangeBand.OOM
+        ):
+
+            enemy.rng = RangeBand.MEL
+
+            msg = (
+                f"{enemy.name} advances "
+                f"toward "
+                f"{current_target.name}."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            continue
+
+        #
+        # OOB enemies do nothing
+        #
+
+        if enemy.rng == RangeBand.OOB:
+            continue
+
+        #
+        # Bow attacks require OOM
+        #
+
+        if (
+            enemy.weapon.name == "BOW"
+            and enemy.rng != RangeBand.OOM
+        ):
+            continue
+
+        #
+        # Axe attacks require MEL
+        #
+
+        if (
+            enemy.weapon.name == "AXE"
+            and enemy.rng != RangeBand.MEL
+        ):
+            continue
+
+        hit = (
+            random.randint(1, 20)
+            + enemy.ms
+            >= 10 + current_target.ms
         )
 
-        current_target.hp -= damage
+        if hit:
 
-        print(
-            f"{enemy.name} "
-            f"hits "
-            f"{current_target.name} "
-            f"for {damage}"
-        )
+            damage = max(
+                1,
+                roll(
+                    enemy.weapon.damage
+                )
+                - max(
+                    current_target.arm
+                    - enemy.weapon.pen,
+                    0,
+                ),
+            )
+
+            current_target.hp -= damage
+
+            msg = (
+                f"{enemy.name} hits "
+                f"{current_target.name} "
+                f"for {damage}"
+            )
+
+        else:
+
+            msg = (
+                f"{enemy.name} misses "
+                f"{current_target.name}"
+            )
+
+        print(msg)
+        log.append(msg)
 
         if current_target.hp <= 0:
 
-            print(
+            msg = (
                 f"{current_target.name} "
                 f"is defeated!"
             )
 
+            print(msg)
+            log.append(msg)
+
         if enemy.focus_rounds > 0:
+
             enemy.focus_rounds -= 1
+
+    enemies[:] = remove_dead(
+        enemies
+    )
+
+    print()
+    print("=== STATUS AFTER ENEMY TURN ===")
+
+    show_battlefield(
+        heroes,
+        enemies,
+        acted,
+    )
+
+
+def show_combat_log(log):
+
+    print()
+    print("=== COMBAT LOG ===")
+
+    if not log:
+
+        print(
+            "No log entries."
+        )
+
+        return
+
+    for entry in log[-20:]:
+
+        print(entry)
 
 
 def run_combat(
@@ -230,6 +440,8 @@ def run_combat(
     acted = set()
 
     round_num = 1
+
+    log = []
 
     while True:
 
@@ -246,6 +458,7 @@ def run_combat(
                 "Attack",
                 "Set Enemy Range",
                 "Enemy Turn",
+                "Combat Log",
                 "Next Round",
                 "Quit",
             ],
@@ -253,33 +466,27 @@ def run_combat(
 
         if choice == 0:
 
-            print()
-            print("HEROES")
-
-            show_heroes(
+            show_battlefield(
                 heroes,
-                acted,
-            )
-
-            print()
-            print("ENEMIES")
-
-            show_enemies(
                 enemies,
+                acted,
             )
 
         elif choice == 1:
 
             if not enemies:
+
                 print(
                     "No enemies remain."
                 )
+
                 continue
 
             hero_attack(
                 heroes,
                 enemies,
                 acted,
+                log,
             )
 
             enemies[:] = remove_dead(
@@ -306,6 +513,8 @@ def run_combat(
             enemy_turn(
                 heroes,
                 enemies,
+                acted,
+                log,
             )
 
             living_heroes = [
@@ -325,10 +534,21 @@ def run_combat(
 
         elif choice == 4:
 
+            show_combat_log(
+                log,
+            )
+
+        elif choice == 5:
+
             round_num += 1
 
             acted.clear()
 
-        elif choice == 5:
+            print(
+                f"Starting Round "
+                f"{round_num}"
+            )
+
+        elif choice == 6:
 
             break
