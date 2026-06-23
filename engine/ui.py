@@ -1,14 +1,28 @@
+import os
+
 from models.enums import RangeBand
 
 
+def clear_screen():
+
+    os.system(
+        "cls"
+        if os.name == "nt"
+        else "clear"
+    )
+
+
 def menu(title, items):
+
     print(f"\n{title}")
 
     for i, item in enumerate(items, 1):
         print(f"{i}. {item}")
 
     while True:
+
         try:
+
             value = int(input("> "))
 
             if 1 <= value <= len(items):
@@ -59,12 +73,21 @@ def show_enemies(enemies):
             enemy.rng == RangeBand.MEL
             and enemy.engaged_target
         ):
-            engaged = f"({enemy.engaged_target})"
+            engaged = (
+                f"({enemy.engaged_target})"
+            )
 
         focus = ""
 
-        if enemy.focus_target:
-            focus = f" -> {enemy.focus_target}"
+        if (
+            enemy.focus_target
+            and enemy.focus_target
+            != enemy.engaged_target
+        ):
+            focus = (
+                f" -> "
+                f"{enemy.focus_target}"
+            )
 
         print(
             f"{i}. "

@@ -7,22 +7,15 @@ from models.weapon import Weapon
 @dataclass
 class Enemy:
     name: str
-
     hp: int
     max_hp: int
-
     arm: int
-
     str_: int
     dex: int
-
     ms: int
-
     morale: int
     pack: int
-
     weapon: Weapon
-
     rng: RangeBand
 
     focus_target: str | None = None
