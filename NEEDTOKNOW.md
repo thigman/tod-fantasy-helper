@@ -624,3 +624,23 @@ Use:
 ```
 
 This provides enough context for a new session to resume work immediately.
+
+
+
+I'm continuing work on Fantasy Helper.
+
+Please read NEEDTOKNOW.md and the repo dump first.
+
+Current priorities:
+
+1. Fix dead focus targets.
+2. Limit enemies to one action per round.
+
+Please always return full file replacements.
+
+
+
+OPEN BUGS
+
+1. Dead focus targets are not cleared.
+2. Enemies may act multiple times per round.
