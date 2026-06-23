@@ -8,16 +8,18 @@ from engine.ui import (
 def run_combat(heroes, enemies):
 
     acted = set()
+    round_num = 1
 
     while True:
 
         print()
-        print("=== COMBAT ===")
+        print(f"=== COMBAT ROUND {round_num} ===")
 
         choice = menu(
             "Action",
             [
                 "Status",
+                "Next Round",
                 "Quit",
             ],
         )
@@ -40,5 +42,10 @@ def run_combat(heroes, enemies):
             )
 
         elif choice == 1:
+
+            round_num += 1
+            acted.clear()
+
+        elif choice == 2:
 
             break
