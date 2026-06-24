@@ -117,3 +117,36 @@ def test_choose_focus_returns_none_when_all_targets_dead():
     )
 
     assert result is None
+
+
+def test_choose_focus_prefers_highest_potential_damage():
+
+    enemy = object()
+
+    fighter = MockHero(
+        "Fighter",
+        25,
+    )
+    wizard = MockHero(
+        "Wizard",
+        12,
+    )
+
+    fighter.weapon = type(
+        "W",
+        (),
+        {"damage": "1d8", "pen": 2},
+    )()
+    wizard.weapon = type(
+        "W",
+        (),
+        {"damage": "2d8", "pen": 2},
+    )()
+
+    result = choose_focus(
+        enemy,
+        [fighter, wizard],
+    )
+
+    assert result is not None
+    assert result.name == "Wizard"

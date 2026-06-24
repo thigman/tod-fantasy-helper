@@ -10,6 +10,7 @@ from engine.ai import (
     choose_focus,
     assign_initial_focus,
 )
+from engine.morale import update_morale
 
 from models.enums import RangeBand
 
@@ -84,6 +85,29 @@ def show_tactical_status(enemies):
     for enemy in enemies:
 
         if enemy.hp <= 0:
+            continue
+
+        if enemy.morale_state == "BROKEN":
+
+            lines.append(
+                f"{enemy.name}: "
+                f"BROKEN - WANTS TO FLEE"
+            )
+
+            continue
+
+        if enemy.morale_state == "SHAKEN":
+
+            target = (
+                enemy.focus_target
+                or "No Target"
+            )
+
+            lines.append(
+                f"{enemy.name}: "
+                f"SHAKEN -> {target}"
+            )
+
             continue
 
         if (
@@ -278,6 +302,21 @@ def hero_attack(
         )
     ]
 
+    if hero.name == "Wizard" and hero_is_engaged(
+        hero.name,
+        enemies,
+    ):
+
+        msg = (
+            f"{hero.name} cannot cast while "
+            f"engaged in melee."
+        )
+
+        print(msg)
+        log.append(msg)
+
+        return
+
     if hero.name == "Wizard":
 
         if enemy.rng != RangeBand.OOM:
@@ -412,6 +451,20 @@ def enemy_turn(
             continue
 
         if enemy.name in enemy_acted:
+            continue
+
+        if enemy.morale_state == "BROKEN":
+
+            msg = (
+                f"{enemy.name} is BROKEN - "
+                f"wants to flee."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            enemy_acted.add(enemy.name)
+
             continue
 
         targets = [
@@ -597,9 +650,20 @@ def run_combat(
 
     log = []
 
+    starting_enemy_count = sum(
+        1
+        for enemy in enemies
+        if enemy.hp > 0
+    )
+
     assign_initial_focus(
         enemies,
         heroes,
+    )
+
+    update_morale(
+        enemies,
+        starting_enemy_count,
     )
 
     battle_over = False
@@ -675,6 +739,11 @@ def run_combat(
         )
 
         print()
+
+        update_morale(
+            enemies,
+            starting_enemy_count,
+        )
 
         show_battlefield(
             heroes,

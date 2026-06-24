@@ -1,49 +1,38 @@
 # Fantasy Helper
 
-A terminal-based fantasy combat assistant inspired by tabletop skirmish and RPG combat.
+A terminal-based fantasy combat assistant for tabletop-style skirmish combat.
 
-## Current Features
+## Overview
 
-### Encounter Builder
+Fantasy Helper is built as a combat assistant, not a fully automated game. The tabletop is the source of truth. The user tracks movement and range manually, while the application tracks state, intent, and combat outcomes.
 
-Build encounters by adding enemies:
+## Current Design
+
+### Heroes
+
+The app currently includes a hardcoded hero roster in `main.py`:
+
+- Fighter
+- Wizard
+
+Heroes are represented by `models.hero.Hero` and include HP, defenses, stats, movement, and a single weapon/spell profile.
+
+### Enemies
+
+Enemies are built through `encounters/builder.py` and currently support:
 
 - Orc Warrior
 - Orc Archer
 
-Start combat when ready.
+Enemies are represented by `models.enemy.Enemy`. They include combat stats, morale attributes, weapon, and range state.
 
----
+### Encounter Builder
 
-### Heroes
+The builder lets the user add enemies and start combat. It is currently a simple menu that creates hardcoded Orc types.
 
-Current heroes:
+### Combat Flow
 
-#### Fighter
-
-- HP: 25
-- STR: 7
-- DEX: 5
-- MS: 7
-- ARM: 4
-- Weapon: Long Sword (1d8)
-
-#### Wizard
-
-- HP: 12
-- STR: 2
-- DEX: 4
-- MS: 2
-- ARM: 1
-- Spells:
-  - Magic Missile (1d8, PEN 2)
-  - Fireball (2d8)
-
----
-
-### Combat
-
-Current combat menu:
+`engine/combat.py` handles the round loop and user choices:
 
 - Attack
 - Set Enemy Range
@@ -52,108 +41,64 @@ Current combat menu:
 - Next Round
 - Quit
 
-Status is automatically displayed at the top of the screen.
-
----
-
-### Range Bands
-
-#### MEL
-
-In melee.
-
-Allowed attacks:
-
-- Sword
-- Axe
-
-#### OOM
-
-Out of melee.
-
-Allowed attacks:
-
-- Bow
-- Magic Missile
-- Fireball
-
-#### OOB
-
-Out of battle.
-
-Cannot attack.
-
----
-
-### Enemy AI
-
-Enemies maintain:
-
-- focus_target
-- focus_rounds
-- engaged_target
-
-#### Warriors
-
-Weapon: AXE
-
-Behavior:
-
-- Advance from OOM to MEL
-- Engage a hero
-- Attack only in MEL
-
-#### Archers
-
-Weapon: BOW
-
-Behavior:
-
-- Attack only while OOM
-- Withdraw if trapped in MEL
-
----
-
-### Engagement
-
-Enemies in MEL may be engaged with a hero.
-
-Example:
-
-```text
-Orc Warrior #1 HP16/16 AXE(1d8) MEL(Fighter)
-```
-
-When manually setting an enemy to MEL, the user chooses which hero the enemy is engaged with.
-
----
+Combat always shows the battlefield and tactical status before action selection.
 
 ### Tactical Status
 
-Displayed at the top of combat.
+`engine/combat.show_tactical_status()` calculates status from:
 
-Example:
+- enemy range band
+- engaged hero
+- focus target
+- morale state
 
-```text
-TACTICAL STATUS
----------------
-Orc Warrior #1: ENGAGING Fighter
-Orc Archer #1: RANGED POSITION -> Wizard
+Current tactical displays include:
+
+- `ENGAGING <hero>`
+- `RANGED POSITION -> <hero>`
+- `WANTS TO WITHDRAW -> <hero>`
+- `WANTS TO ENGAGE <hero>`
+- `SHAKEN -> <hero>`
+- `BROKEN - WANTS TO FLEE`
+
+### Morale
+
+Morale is implemented in `engine/morale.py` and is now integrated into combat.
+
+- `STEADY` – normal behavior
+- `SHAKEN` – displays morale but still fights
+- `BROKEN` – does not attack and displays fleeing intent
+
+Morale state is updated each round based on:
+
+- casualties against original enemy count
+- remaining enemy HP ratio
+- average enemy resolve (`morale + pack`)
+
+### Range Lock and Engagement
+
+The app enforces basic range rules:
+
+- melee attacks require `MEL`
+- wizard spells require `OOM`
+- a wizard cannot cast while engaged in melee
+
+`Set Enemy Range` allows the user to assign engagement manually when an enemy enters MEL.
+
+## Testing
+
+The repository includes regression tests for AI and combat logic:
+
+- `tests/test_ai.py`
+- `tests/test_combat.py`
+
+Current status: `18 passed`.
+
+Run the suite with:
+
+```bash
+.venv/bin/python -m pytest -q
 ```
-
----
-
-### Combat Log
-
-Stores recent combat events:
-
-- Hits
-- Misses
-- Advances
-- Withdrawals
-- Defeats
-
----
 
 ## Project Structure
 
@@ -172,4 +117,27 @@ models/
     hero.py
     weapon.py
 
+encounters/
+    builder.py
+
+data/
+    monsters.json
+    party.json
+    weapons.json
+
+tests/
+    test_ai.py
+    test_combat.py
+
 main.py
+```
+
+## Notes
+
+- `data/*.json` files exist as placeholders for future roster loading.
+- The current hero roster is hardcoded in `main.py`.
+- The current encounter builder is hardcoded in `encounters/builder.py`.
+
+## Next steps
+
+The next extension is to make heroes and enemies data-driven, using JSON definitions for new good guys and bad guys without code changes.

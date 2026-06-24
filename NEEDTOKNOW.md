@@ -60,6 +60,11 @@ models/
     hero.py
     weapon.py
 
+data/
+    monsters.json
+    party.json
+    weapons.json
+
 tests/
     test_ai.py
     test_combat.py
@@ -100,120 +105,76 @@ Player moves minis physically and updates ranges manually.
 
 # Heroes
 
-## Fighter
+The current hero roster is hardcoded in `main.py`.
 
-HP: 25
+Current heroes:
 
-ARM: 4
-STR: 7
-DEX: 5
-MS: 7
+- Fighter
+- Wizard
 
-Weapon:
+Heroes are represented by `models.hero.Hero`.
 
-Long Sword
-1d8
-PEN 2
+Each hero has:
 
-Role:
+- name
+- hp / max_hp
+- arm
+- str_
+- dex
+- ms
+- rs
+- intel
+- weapon
 
-Melee
-
----
-
-## Wizard
-
-HP: 12
-
-ARM: 1
-STR: 2
-DEX: 4
-MS: 2
-INT: 8
-
-Spells:
-
-Magic Missile
-1d8
-PEN 2
-
-Fireball
-2d8
-
-Role:
-
-Ranged
+Wizard spellcasting is modeled through a standard weapon-like attack, but has special range restrictions.
 
 ---
 
 # Enemies
 
-## Orc Warrior
+Enemies are built in `encounters/builder.py`.
 
-HP: 16
+Current enemy types:
 
-Weapon:
+- Orc Warrior
+- Orc Archer
 
-AXE
-1d8
-PEN 2
+Enemies are represented by `models.enemy.Enemy`.
 
-Behavior:
+Each enemy has:
 
-- Prefer melee
-- Advance from OOM
-- Engage hero
-- Attack in MEL
-
----
-
-## Orc Archer
-
-HP: 12
-
-Weapon:
-
-BOW
-1d6
-PEN 1
-
-Behavior:
-
-- Attack while OOM
-- Withdraw if trapped in MEL
+- name
+- hp / max_hp
+- arm
+- str_
+- dex
+- ms
+- morale
+- pack
+- weapon
+- rng
+- focus_target
+- focus_rounds
+- engaged_target
+- morale_state
 
 ---
 
 # Range Bands
 
-## MEL
+Range is represented by `models.enums.RangeBand`.
 
-In melee
+- `MEL` — melee
+- `OOM` — out of melee
+- `OOB` — out of battle
 
-Allowed:
+Rules enforced by `engine/combat.hero_attack()`:
 
-- Sword
-- Axe
+- melee heroes require `MEL`
+- Wizard spells require `OOM`
+- Wizard cannot cast while engaged in melee
 
----
-
-## OOM
-
-Out of melee
-
-Allowed:
-
-- Bow
-- Magic Missile
-- Fireball
-
----
-
-## OOB
-
-Out of battle
-
-Cannot attack
+Range changes are assigned through `Set Enemy Range`.
 
 ---
 
@@ -225,65 +186,13 @@ Enemy model contains:
 
 Purpose:
 
-Tracks which hero an enemy is engaged with.
+Tracks which hero an enemy is engaged with when in melee.
+
+When an enemy is set to `MEL`, the user selects the engaged hero.
 
 Example:
-
-    Orc Warrior #1
-    HP 16/16
-    MEL(Fighter)
-
----
-
-# Manual Engagement Assignment
-
-Menu:
-
-    Set Enemy Range
-
-If user selects:
-
-    MEL
-
-User is prompted:
-
-    Engaged Hero
-
-Engagement is assigned manually.
-
-Example:
-
-    Fighter
-
-Result:
 
     enemy.engaged_target == "Fighter"
-
----
-
-# Tactical Status
-
-Displayed above battlefield view.
-
-Examples:
-
-    TACTICAL STATUS
-    ----------------
-    Orc Warrior #1:
-    ENGAGING Fighter
-
-    Orc Archer #1:
-    RANGED POSITION -> Wizard
-
-Status is derived from:
-
-- range
-- focus target
-- engagement
-
-Status text is NOT stored.
-
-This is intentional.
 
 ---
 
@@ -295,26 +204,66 @@ Enemy model contains:
     focus_rounds
     engaged_target
 
-Focus assignment:
+The AI uses `engine.ai.choose_focus()` to choose the most threatening living hero.
 
-Current AI selects first living hero.
+Threat is calculated from:
 
-Function:
+- hero weapon damage
+- hero STR or INT bonus
 
-    choose_focus()
+Initial focus is assigned before the first enemy turn by `engine.ai.assign_initial_focus()`.
 
-Initial focus assignment implemented.
+Enemies preserve focus for a small number of rounds before retargeting.
 
-Combat now begins with immediate target selection.
+---
 
-Example:
+# Morale System
 
-    Orc Warrior #1:
-    WANTS TO ENGAGE Fighter
+Implemented in `engine/morale.py`.
 
-instead of:
+Morale states:
 
-    No Target
+- `STEADY`
+- `SHAKEN`
+- `BROKEN`
+
+Morale is updated each round by `engine.morale.update_morale()`.
+
+Morale calculation considers:
+
+- casualties vs starting enemy count
+- remaining enemy HP ratio
+- average enemy resolve (`morale + pack`)
+
+Behavior:
+
+- `STEADY` — normal combat
+- `SHAKEN` — intent shown, still fights
+- `BROKEN` — does not attack, displays fleeing intent
+
+---
+
+# Tactical Status
+
+Displayed above the battlefield.
+
+Status is derived from:
+
+- enemy range band
+- engaged target
+- focus target
+- morale state
+
+Text is generated dynamically and not stored directly on the enemy.
+
+Examples:
+
+- `ENGAGING Fighter`
+- `RANGED POSITION -> Wizard`
+- `WANTS TO ENGAGE Fighter`
+- `WANTS TO WITHDRAW -> Wizard`
+- `SHAKEN -> <target>`
+- `BROKEN - WANTS TO FLEE`
 
 ---
 
@@ -328,195 +277,77 @@ Tracks:
 - advances
 - withdrawals
 
-Example:
-
-    Wizard hits Orc Archer #1 for 7
-
-    Orc Warrior #1 misses Fighter
-
----
-
-# Post Battle Screen
-
-Implemented.
-
-Features:
-
-- Hero Victory
-- Hero Defeat
-- Round count
-- Final hero status
-- Combat log access
-
-Combat does NOT automatically quit.
-
-User must choose:
-
-    Quit
-
-from post-battle menu.
+The combat log is appended during hero and enemy actions.
 
 ---
 
 # Enemy Turn Tracking
 
-Implemented.
+Enemy turns are handled in `engine.combat.enemy_turn()`.
 
-Mechanism:
+Enemies act once per round via `enemy_acted`.
 
-    enemy_acted = set()
-
-Enemies may only act once per round.
-
-Reset occurs when:
-
-    Next Round
-
-is selected.
+BROKEN enemies still consume their turn but do not attack.
 
 ---
 
 # Dead Target Cleanup
 
-Implemented.
+Implemented in `engine.combat.validate_enemy_targets()`.
 
-If focused hero dies:
+If a focused or engaged hero dies:
 
-    focus_target = None
-
-and
-
-    focus_rounds = 0
-
-If engaged hero dies:
-
-    engaged_target = None
-
-Enemy will select a new target.
+- `focus_target` is cleared
+- `focus_rounds` is reset
+- `engaged_target` is cleared
 
 ---
 
-# Regression Tests
+# Testing
 
-Implemented.
+Tests are in:
 
-Currently:
-
-## tests/test_ai.py
-
-5 passing tests
-
-Verifies:
-
-- living target selection
-- dead target filtering
-- no target behavior
-
----
-
-## tests/test_combat.py
-
-6 passing tests
-
-Verifies:
-
-- remove_dead()
-- focus cleanup
-- engagement cleanup
-- focus round reset
-- target preservation
-
----
-
-Current test status:
-
-    11 passed
+- `tests/test_ai.py`
+- `tests/test_combat.py`
 
 Run with:
 
     python -m pytest -v
 
----
-
-# Morale System
-
-Partially implemented.
-
-Current file:
-
-    engine/morale.py
-
-Contains:
-
-    calculate_morale_state()
-
-    update_morale()
-
-Enemy model contains:
-
-    morale_state
-
-Default:
-
-    STEADY
+Current status: `18 passed`.
 
 ---
 
-## Intended Morale Rules
+# Future Work
 
-Casualties based on original enemy count.
+The next extension should make heroes and enemies data-driven.
 
-0-24%
+This means moving roster definitions into JSON files under `data/` and updating the builder/load path so new good guys and bad guys can be added without code changes.
 
-    STEADY
+Key future tasks:
 
-25-49%
-
-    SHAKEN
-
-50%+
-
-    BROKEN
+1. Make `encounters.builder` and `main.py` load heroes/enemies from `data/*.json`.
+2. Add JSON schemas for heroes, enemies, and weapons.
+3. Add tests for data loading and model construction.
+4. Keep engine combat logic unchanged while supporting new data.
 
 ---
 
-## Intended Behavior
+# Recommended Prompt For New Session
 
-STEADY
+Read NEEDTOKNOW.md first.
 
-Normal
+Current priorities:
 
----
+1. Make hero/enemy definitions data-driven.
+2. Keep all existing regression tests passing.
+3. Preserve the current combat, AI, and morale behavior.
 
-SHAKEN
+Remember:
 
-Displays morale state.
-
-Still fights.
-
----
-
-BROKEN
-
-Will not attack.
-
-Displays:
-
-    BROKEN - WANTS TO FLEE
-
-Movement remains player-controlled.
-
-No automatic retreating.
-
----
-
-# Range Lock Feature
-
-NOT YET IMPLEMENTED
-
-Desired rule:
-
-If a combatant is engaged in melee:
+FULL FILES.
+NOT PATCHES.
+NOT SNIPPETS.
 
     No ranged attacks
     No spells

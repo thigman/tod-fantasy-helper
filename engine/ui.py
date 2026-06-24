@@ -102,4 +102,5 @@ def show_enemies(enemies):
             f"{enemy.rng.value}"
             f"{engaged}"
             f"{focus}"
+            f" [{enemy.morale_state}]"
         )
