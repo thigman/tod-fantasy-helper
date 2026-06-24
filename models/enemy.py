@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from models.enums import RangeBand
 from models.weapon import Weapon
 
@@ -23,3 +24,6 @@ class Enemy:
 
     # Melee engagement
     engaged_target: str | None = None
+
+    # Morale state
+    morale_state: str = "STEADY"

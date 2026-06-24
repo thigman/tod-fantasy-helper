@@ -6,11 +6,37 @@ from engine.ui import (
 )
 
 from engine.dice import roll
-from engine.ai import choose_focus
+from engine.ai import (
+    choose_focus,
+    assign_initial_focus,
+)
 
 from models.enums import RangeBand
 
 import random
+
+def hero_is_engaged(
+    hero_name,
+    enemies,
+):
+
+    return any(
+        enemy.hp > 0
+        and enemy.engaged_target == hero_name
+        for enemy in enemies
+    )
+
+
+def enemy_is_engaged(
+    enemy,
+):
+
+    return (
+        enemy.hp > 0
+        and enemy.engaged_target is not None
+    )
+
+
 
 
 def remove_dead(enemies):
@@ -570,6 +596,11 @@ def run_combat(
     round_num = 1
 
     log = []
+
+    assign_initial_focus(
+        enemies,
+        heroes,
+    )
 
     battle_over = False
 
