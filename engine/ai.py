@@ -1,12 +1,14 @@
 def choose_focus(enemy, targets):
     """
-    Current threat model.
+    Pick a living target.
 
-    Focuses on the hero who has
-    dealt the most damage.
+    Current simple threat model:
+    choose the first living hero.
     """
 
-    return max(
-        targets,
-        key=lambda h: h.damage_done + 5
-    )
+    living_targets = [t for t in targets if t.hp > 0]
+
+    if not living_targets:
+        return None
+
+    return living_targets[0]

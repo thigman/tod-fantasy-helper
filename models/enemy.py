@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from models.enums import RangeBand
 from models.weapon import Weapon
 
@@ -18,7 +17,9 @@ class Enemy:
     weapon: Weapon
     rng: RangeBand
 
+    # AI state
     focus_target: str | None = None
     focus_rounds: int = 0
 
+    # Melee engagement
     engaged_target: str | None = None

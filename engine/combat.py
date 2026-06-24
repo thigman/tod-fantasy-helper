@@ -22,6 +22,35 @@ def remove_dead(enemies):
     ]
 
 
+def validate_enemy_targets(
+    enemies,
+    heroes,
+):
+
+    living_names = {
+        hero.name
+        for hero in heroes
+        if hero.hp > 0
+    }
+
+    for enemy in enemies:
+
+        if (
+            enemy.focus_target
+            and enemy.focus_target
+            not in living_names
+        ):
+            enemy.focus_target = None
+            enemy.focus_rounds = 0
+
+        if (
+            enemy.engaged_target
+            and enemy.engaged_target
+            not in living_names
+        ):
+            enemy.engaged_target = None
+
+
 def show_tactical_status(enemies):
 
     lines = []
@@ -30,10 +59,6 @@ def show_tactical_status(enemies):
 
         if enemy.hp <= 0:
             continue
-
-        #
-        # Melee engagement
-        #
 
         if (
             enemy.rng == RangeBand.MEL
@@ -48,18 +73,14 @@ def show_tactical_status(enemies):
 
             continue
 
-        #
-        # Archer positioning
-        #
-
         if enemy.weapon.name == "BOW":
 
-            if enemy.rng == RangeBand.OOM:
+            target = (
+                enemy.focus_target
+                or "No Target"
+            )
 
-                target = (
-                    enemy.focus_target
-                    or "No Target"
-                )
+            if enemy.rng == RangeBand.OOM:
 
                 lines.append(
                     f"{enemy.name}: "
@@ -71,28 +92,25 @@ def show_tactical_status(enemies):
 
                 lines.append(
                     f"{enemy.name}: "
-                    f"ATTEMPTING WITHDRAW"
+                    f"WANTS TO WITHDRAW "
+                    f"-> {target}"
                 )
 
             continue
 
-        #
-        # Warrior positioning
-        #
-
         if enemy.weapon.name == "AXE":
+
+            target = (
+                enemy.focus_target
+                or "No Target"
+            )
 
             if enemy.rng == RangeBand.OOM:
 
-                target = (
-                    enemy.focus_target
-                    or "No Target"
-                )
-
                 lines.append(
                     f"{enemy.name}: "
-                    f"ATTEMPTING ADVANCE "
-                    f"-> {target}"
+                    f"WANTS TO ENGAGE "
+                    f"{target}"
                 )
 
     if not lines:
@@ -132,7 +150,10 @@ def show_battlefield(
     )
 
 
-def set_enemy_range(enemies):
+def set_enemy_range(
+    enemies,
+    heroes,
+):
 
     if not enemies:
         print("No enemies.")
@@ -143,6 +164,8 @@ def set_enemy_range(enemies):
         [e.name for e in enemies],
     )
 
+    enemy = enemies[enemy_index]
+
     range_index = menu(
         "Range",
         [
@@ -152,9 +175,45 @@ def set_enemy_range(enemies):
         ],
     )
 
-    enemies[enemy_index].rng = (
-        list(RangeBand)[range_index]
-    )
+    enemy.rng = list(
+        RangeBand
+    )[range_index]
+
+    if enemy.rng == RangeBand.MEL:
+
+        living_heroes = [
+            hero
+            for hero in heroes
+            if hero.hp > 0
+        ]
+
+        if living_heroes:
+
+            hero_index = menu(
+                "Engaged Hero",
+                [
+                    hero.name
+                    for hero in living_heroes
+                ],
+            )
+
+            enemy.engaged_target = (
+                living_heroes[
+                    hero_index
+                ].name
+            )
+
+            enemy.focus_target = (
+                enemy.engaged_target
+            )
+
+        else:
+
+            enemy.engaged_target = None
+
+    else:
+
+        enemy.engaged_target = None
 
 
 def hero_attack(
@@ -309,15 +368,24 @@ def enemy_turn(
     heroes,
     enemies,
     acted,
+    enemy_acted,
     log,
 ):
 
     print()
     print("=== ENEMY TURN ===")
 
+    validate_enemy_targets(
+        enemies,
+        heroes,
+    )
+
     for enemy in enemies:
 
         if enemy.hp <= 0:
+            continue
+
+        if enemy.name in enemy_acted:
             continue
 
         targets = [
@@ -367,29 +435,15 @@ def enemy_turn(
                 targets,
             )
 
-            enemy.focus_target = (
-                current_target.name
-            )
+            if current_target:
 
-            enemy.focus_rounds = 2
+                enemy.focus_target = (
+                    current_target.name
+                )
 
-        if (
-            enemy.weapon.name == "BOW"
-            and enemy.rng == RangeBand.MEL
-        ):
+                enemy.focus_rounds = 2
 
-            enemy.rng = RangeBand.OOM
-            enemy.engaged_target = None
-
-            msg = (
-                f"{enemy.name} withdraws "
-                f"from melee "
-                f"(MEL -> OOM)"
-            )
-
-            print(msg)
-            log.append(msg)
-
+        if current_target is None:
             continue
 
         if (
@@ -397,37 +451,40 @@ def enemy_turn(
             and enemy.rng == RangeBand.OOM
         ):
 
-            enemy.rng = RangeBand.MEL
-
-            enemy.engaged_target = (
-                current_target.name
-            )
-
             msg = (
-                f"{enemy.name} advances "
-                f"toward "
+                f"{enemy.name} wants to engage "
                 f"{current_target.name} "
-                f"(OOM -> MEL)"
+                f"but remains OOM."
             )
 
             print(msg)
             log.append(msg)
 
-            continue
+            enemy_acted.add(enemy.name)
 
-        if enemy.rng == RangeBand.OOB:
             continue
 
         if (
             enemy.weapon.name == "BOW"
-            and enemy.rng != RangeBand.OOM
+            and enemy.rng == RangeBand.MEL
         ):
+
+            msg = (
+                f"{enemy.name} wants to withdraw "
+                f"from melee but remains MEL."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            enemy_acted.add(enemy.name)
+
             continue
 
-        if (
-            enemy.weapon.name == "AXE"
-            and enemy.rng != RangeBand.MEL
-        ):
+        if enemy.rng == RangeBand.OOB:
+
+            enemy_acted.add(enemy.name)
+
             continue
 
         hit = (
@@ -479,6 +536,10 @@ def enemy_turn(
         if enemy.focus_rounds > 0:
             enemy.focus_rounds -= 1
 
+        enemy_acted.add(
+            enemy.name
+        )
+
     enemies[:] = remove_dead(
         enemies
     )
@@ -504,11 +565,76 @@ def run_combat(
 
     acted = set()
 
+    enemy_acted = set()
+
     round_num = 1
 
     log = []
 
+    battle_over = False
+
+    battle_result = ""
+
     while True:
+
+        if battle_over:
+
+            clear_screen()
+
+            print("=== BATTLE OVER ===")
+            print()
+
+            print(
+                f"Result: {battle_result}"
+            )
+
+            print(
+                f"Rounds: {round_num}"
+            )
+
+            print()
+
+            print("HEROES")
+            print("------")
+
+            for hero in heroes:
+
+                if hero.hp > 0:
+
+                    print(
+                        f"{hero.name}: "
+                        f"HP {hero.hp}/{hero.max_hp}"
+                    )
+
+                else:
+
+                    print(
+                        f"{hero.name}: DEAD"
+                    )
+
+            print()
+
+            choice = menu(
+                "Post Battle",
+                [
+                    "Combat Log",
+                    "Quit",
+                ],
+            )
+
+            if choice == 0:
+
+                show_combat_log(
+                    log,
+                )
+
+                input("\nPress Enter...")
+
+            else:
+
+                break
+
+            continue
 
         clear_screen()
 
@@ -554,18 +680,18 @@ def run_combat(
 
             if not enemies:
 
-                print(
-                    "\nAll enemies defeated!"
-                )
+                battle_over = True
+                battle_result = "HERO VICTORY"
 
-                break
+            else:
 
-            input("\nPress Enter...")
+                input("\nPress Enter...")
 
         elif choice == 1:
 
             set_enemy_range(
                 enemies,
+                heroes,
             )
 
             input("\nPress Enter...")
@@ -576,6 +702,7 @@ def run_combat(
                 heroes,
                 enemies,
                 acted,
+                enemy_acted,
                 log,
             )
 
@@ -587,13 +714,12 @@ def run_combat(
 
             if not living_heroes:
 
-                print(
-                    "\nThe heroes have fallen!"
-                )
+                battle_over = True
+                battle_result = "HERO DEFEAT"
 
-                break
+            else:
 
-            input("\nPress Enter...")
+                input("\nPress Enter...")
 
         elif choice == 3:
 
@@ -606,7 +732,10 @@ def run_combat(
         elif choice == 4:
 
             round_num += 1
+
             acted.clear()
+
+            enemy_acted.clear()
 
         elif choice == 5:
 

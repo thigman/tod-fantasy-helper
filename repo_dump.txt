@@ -1,4 +1,1108 @@
 ==================================================
+FILE: ./.gitignore
+==================================================
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test/cache tools
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local data dumps
+repo_dump.txt
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Python packaging
+*.egg
+
+# Coverage
+.coverage.*
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+
+==================================================
+FILE: ./NEEDTOKNOW.md
+==================================================
+# NEEDTOKNOW.md
+
+# Fantasy Helper
+
+This file is intended to help a future Copilot/chat session quickly understand the project and continue development without requiring conversation history.
+
+---
+
+# Project Summary
+
+Fantasy Helper is a terminal-based fantasy combat assistant.
+
+Current focus is combat simulation, enemy AI, engagement, movement, and future morale systems.
+
+The game is being built incrementally and correctness is more important than adding new features.
+
+---
+
+# Important Workflow Rule
+
+The user prefers:
+
+- FULL FILES
+- NOT PATCHES
+- NOT SNIPPETS
+
+When updating a file:
+
+- Return the entire file
+- Ensure it is internally consistent
+- Do not provide partial replacements unless specifically requested
+
+---
+
+# Current Architecture
+
+```text
+main.py
+
+engine/
+    ai.py
+    combat.py
+    dice.py
+    morale.py
+    movement.py
+    ui.py
+
+models/
+    enemy.py
+    enums.py
+    hero.py
+    weapon.py
+```
+
+---
+
+# Heroes
+
+## Fighter
+
+```text
+HP 25
+STR 7
+DEX 5
+MS 7
+ARM 4
+Weapon: Long Sword (1d8)
+```
+
+Role:
+
+```text
+Melee
+```
+
+---
+
+## Wizard
+
+```text
+HP 12
+STR 2
+DEX 4
+MS 2
+ARM 1
+```
+
+Spells:
+
+```text
+Magic Missile (1d8 PEN 2)
+Fireball (2d8)
+```
+
+Role:
+
+```text
+Ranged
+```
+
+---
+
+# Enemies
+
+## Orc Warrior
+
+Weapon:
+
+```text
+AXE
+```
+
+Behavior:
+
+```text
+Advance from OOM to MEL
+Engage target
+Attack in MEL
+```
+
+---
+
+## Orc Archer
+
+Weapon:
+
+```text
+BOW
+```
+
+Behavior:
+
+```text
+Attack from OOM
+Withdraw from MEL
+```
+
+---
+
+# Range Bands
+
+## MEL
+
+In melee.
+
+Allowed:
+
+```text
+Sword
+Axe
+```
+
+---
+
+## OOM
+
+Out of melee.
+
+Allowed:
+
+```text
+Bow
+Magic Missile
+Fireball
+```
+
+---
+
+## OOB
+
+Out of battle.
+
+No attacks allowed.
+
+---
+
+# Engagement System
+
+Enemy model currently contains:
+
+```python
+engaged_target
+```
+
+Purpose:
+
+```text
+Tracks which hero a melee enemy is currently engaged with.
+```
+
+Status display example:
+
+```text
+Orc Warrior #1 MEL(Fighter)
+```
+
+Manual range assignment:
+
+When putting an enemy into MEL through:
+
+```text
+Set Enemy Range
+```
+
+the user chooses:
+
+```text
+Engaged Hero
+```
+
+and engagement is assigned.
+
+---
+
+# Tactical Status
+
+Displayed at top of combat screen.
+
+Examples:
+
+```text
+TACTICAL STATUS
+---------------
+Orc Warrior #1: ENGAGING Fighter
+```
+
+```text
+TACTICAL STATUS
+---------------
+Orc Archer #1: RANGED POSITION -> Fighter
+```
+
+Current implementation derives tactical status from:
+
+```text
+range
+focus target
+engaged target
+weapon type
+```
+
+rather than storing status text.
+
+This is preferred because it cannot become stale.
+
+---
+
+# Combat Rules
+
+## Melee
+
+Allowed only in:
+
+```text
+MEL
+```
+
+Weapons:
+
+```text
+SWORD
+AXE
+```
+
+---
+
+## Ranged
+
+Allowed only in:
+
+```text
+OOM
+```
+
+Weapons:
+
+```text
+BOW
+MAGIC MISSILE
+FIREBALL
+```
+
+---
+
+# Current Combat Menu
+
+```text
+Attack
+Set Enemy Range
+Enemy Turn
+Combat Log
+Next Round
+Quit
+```
+
+---
+
+# Screen Handling
+
+Current desired behavior:
+
+```text
+Status always visible at top.
+```
+
+Screen redraws frequently.
+
+Combat Log is available separately.
+
+---
+
+# Combat Log
+
+Tracks:
+
+```text
+Hits
+Misses
+Advances
+Withdrawals
+Defeats
+```
+
+Example:
+
+```text
+Wizard hits Orc Archer #1 for 7
+Orc Warrior #1 advances toward Fighter
+Orc Archer #1 withdraws from melee
+```
+
+---
+
+# What Is Working
+
+## Hero Combat
+
+Working:
+
+```text
+Hero hit rolls
+Hero damage
+Hero acted tracking
+Range restrictions
+```
+
+---
+
+## Enemy Combat
+
+Working:
+
+```text
+Advance
+Withdraw
+Damage
+Hit rolls
+Focus targeting
+Engagement
+```
+
+---
+
+## Tactical Status
+
+Working.
+
+Displayed continuously.
+
+---
+
+## Engagement
+
+Working.
+
+Displayed as:
+
+```text
+MEL(Fighter)
+```
+
+---
+
+# Known Bugs
+
+## Bug 1
+
+Dead focus target may persist.
+
+Example:
+
+```text
+Wizard dies.
+Enemy still shows:
+
+-> Wizard
+```
+
+Desired:
+
+```text
+Focus automatically cleared.
+Enemy chooses a living target.
+```
+
+Priority:
+
+```text
+HIGH
+```
+
+---
+
+## Bug 2
+
+Enemy can currently act multiple times per round.
+
+Example:
+
+```text
+Enemy Turn
+Enemy Turn
+Enemy Turn
+```
+
+results in multiple attacks.
+
+Desired:
+
+```text
+One enemy action per round.
+```
+
+Implementation idea:
+
+```python
+enemy_acted = set()
+```
+
+Reset when:
+
+```python
+Next Round
+```
+
+is selected.
+
+Priority:
+
+```text
+HIGH
+```
+
+---
+
+# Next Development Tasks
+
+## 1
+
+Fix dead focus targets.
+
+Priority:
+
+```text
+HIGH
+```
+
+---
+
+## 2
+
+Limit enemies to one action per round.
+
+Priority:
+
+```text
+HIGH
+```
+
+---
+
+## 3
+
+Initial focus assignment.
+
+Current tactical display may show:
+
+```text
+No Target
+```
+
+before first enemy turn.
+
+Desired:
+
+```text
+Orc Warrior #1: ATTEMPTING ADVANCE -> Fighter
+```
+
+---
+
+## 4
+
+Morale System
+
+Placeholder exists:
+
+```text
+engine/morale.py
+```
+
+Not implemented yet.
+
+Ideas:
+
+```text
+Break
+Retreat
+Rally
+Pack morale
+Leader effects
+```
+
+---
+
+## 5
+
+Movement System
+
+Placeholder exists:
+
+```text
+engine/movement.py
+```
+
+Not implemented yet.
+
+Ideas:
+
+```text
+Advance
+Withdraw
+Charge
+Retreat
+```
+
+---
+
+## 6
+
+Combat Balance
+
+Future review:
+
+```text
+Hit chances
+Armor values
+Wizard balance
+Enemy durability
+```
+
+---
+
+## 7
+
+Additional Enemies
+
+Potential future additions:
+
+```text
+Goblin
+Skeleton
+Zombie
+Ogre
+Troll
+Bosses
+```
+
+---
+
+# Recommended Next Session Prompt
+
+```text
+I'm continuing work on Fantasy Helper.
+
+Please read the attached repo dump and NEEDTOKNOW.md first.
+
+Current priorities:
+
+1. Fix dead focus targets.
+2. Limit enemies to one action per round.
+
+Please always return full file replacements.
+```
+
+---
+
+# Repo Dump Format Recommendation
+
+Use:
+
+```text
+===== FILE: README.md =====
+
+(contents)
+
+===== FILE: STATUS.md =====
+
+(contents)
+
+===== FILE: NEEDTOKNOW.md =====
+
+(contents)
+
+===== FILE: engine/combat.py =====
+
+(contents)
+
+===== FILE: engine/ui.py =====
+
+(contents)
+
+...
+```
+
+This provides enough context for a new session to resume work immediately.
+
+
+
+I'm continuing work on Fantasy Helper.
+
+Please read NEEDTOKNOW.md and the repo dump first.
+
+Current priorities:
+
+1. Fix dead focus targets.
+2. Limit enemies to one action per round.
+
+Please always return full file replacements.
+
+
+
+OPEN BUGS
+
+1. Dead focus targets are not cleared.
+2. Enemies may act multiple times per round.
+
+
+
+==================================================
+FILE: ./README.md
+==================================================
+# Fantasy Helper
+
+A terminal-based fantasy combat assistant inspired by tabletop skirmish and RPG combat.
+
+## Current Features
+
+### Encounter Builder
+
+Build encounters by adding enemies:
+
+- Orc Warrior
+- Orc Archer
+
+Start combat when ready.
+
+---
+
+### Heroes
+
+Current heroes:
+
+#### Fighter
+
+- HP: 25
+- STR: 7
+- DEX: 5
+- MS: 7
+- ARM: 4
+- Weapon: Long Sword (1d8)
+
+#### Wizard
+
+- HP: 12
+- STR: 2
+- DEX: 4
+- MS: 2
+- ARM: 1
+- Spells:
+  - Magic Missile (1d8, PEN 2)
+  - Fireball (2d8)
+
+---
+
+### Combat
+
+Current combat menu:
+
+- Attack
+- Set Enemy Range
+- Enemy Turn
+- Combat Log
+- Next Round
+- Quit
+
+Status is automatically displayed at the top of the screen.
+
+---
+
+### Range Bands
+
+#### MEL
+
+In melee.
+
+Allowed attacks:
+
+- Sword
+- Axe
+
+#### OOM
+
+Out of melee.
+
+Allowed attacks:
+
+- Bow
+- Magic Missile
+- Fireball
+
+#### OOB
+
+Out of battle.
+
+Cannot attack.
+
+---
+
+### Enemy AI
+
+Enemies maintain:
+
+- focus_target
+- focus_rounds
+- engaged_target
+
+#### Warriors
+
+Weapon: AXE
+
+Behavior:
+
+- Advance from OOM to MEL
+- Engage a hero
+- Attack only in MEL
+
+#### Archers
+
+Weapon: BOW
+
+Behavior:
+
+- Attack only while OOM
+- Withdraw if trapped in MEL
+
+---
+
+### Engagement
+
+Enemies in MEL may be engaged with a hero.
+
+Example:
+
+```text
+Orc Warrior #1 HP16/16 AXE(1d8) MEL(Fighter)
+```
+
+When manually setting an enemy to MEL, the user chooses which hero the enemy is engaged with.
+
+---
+
+### Tactical Status
+
+Displayed at the top of combat.
+
+Example:
+
+```text
+TACTICAL STATUS
+---------------
+Orc Warrior #1: ENGAGING Fighter
+Orc Archer #1: RANGED POSITION -> Wizard
+```
+
+---
+
+### Combat Log
+
+Stores recent combat events:
+
+- Hits
+- Misses
+- Advances
+- Withdrawals
+- Defeats
+
+---
+
+## Project Structure
+
+```text
+engine/
+    ai.py
+    combat.py
+    dice.py
+    morale.py
+    movement.py
+    ui.py
+
+models/
+    enemy.py
+    enums.py
+    hero.py
+    weapon.py
+
+main.py
+
+
+==================================================
+FILE: ./STATUS.md
+==================================================
+# Current Status
+
+## Working
+
+### Encounter Builder
+
+- Add Orc Warrior
+- Add Orc Archer
+- Start Encounter
+
+### Hero Combat
+
+- Fighter melee attacks
+- Wizard spell attacks
+- Melee restricted to MEL
+- Spells restricted to OOM
+
+### Enemy Combat
+
+- Warrior advance
+- Archer withdraw
+- Enemy hit rolls
+- Enemy damage
+- Enemy focus targeting
+
+### Engagement
+
+- engaged_target exists
+- MEL enemies can be assigned to a hero
+- Engagement displayed in status
+
+### Tactical Display
+
+- Battlefield displayed continuously
+- Tactical status displayed above heroes/enemies
+
+### Combat Log
+
+- Stores and displays events
+
+### Screen Handling
+
+- Screen clears between actions
+- Status redraws automatically
+
+---
+
+# Known Issues
+
+## High Priority
+
+### Dead Focus Targets
+
+Current bug:
+
+Enemy may continue displaying:
+
+```text
+-> Wizard
+```
+
+after Wizard is dead.
+
+Desired:
+
+- Clear focus automatically
+- Select new target
+
+---
+
+### Enemy Multiple Turns
+
+Current bug:
+
+User can select:
+
+```text
+Enemy Turn
+Enemy Turn
+Enemy Turn
+```
+
+during the same round.
+
+Desired:
+
+- Enemy acts once per round
+- Add:
+
+```python
+enemy_acted = set()
+```
+
+- Reset on:
+
+```python
+Next Round
+```
+
+---
+
+# Next Development Tasks
+
+## 1
+
+Fix dead focus targets.
+
+Priority: HIGH
+
+---
+
+## 2
+
+Limit enemies to one action per round.
+
+Priority: HIGH
+
+---
+
+## 3
+
+Initial target assignment.
+
+Currently tactical status may show:
+
+```text
+No Target
+```
+
+Desired:
+
+```text
+Orc Warrior #1: ATTEMPTING ADVANCE -> Fighter
+```
+
+before first enemy turn.
+
+---
+
+## 4
+
+Morale System
+
+Existing placeholder:
+
+```text
+engine/morale.py
+```
+
+Not yet implemented.
+
+Ideas:
+
+- Break
+- Retreat
+- Rally
+
+---
+
+## 5
+
+Movement System
+
+Existing placeholder:
+
+```text
+engine/movement.py
+```
+
+Not yet implemented.
+
+Possible future features:
+
+- Advance
+- Withdraw
+- Charge
+- Retreat
+
+---
+
+## 6
+
+Combat Balance
+
+Future improvements:
+
+- Hero hit rolls tuning
+- Wizard balancing
+- Armor tuning
+- Damage balancing
+
+---
+
+## 7
+
+Enemy Types
+
+Potential additions:
+
+- Goblin
+- Skeleton
+- Troll
+- Ogre
+- Bosses
+
+---
+
+# Immediate Goal
+
+Fix:
+
+- dead focus targets
+- enemy acting multiple times per round
+
+before implementing morale or additional enemy types.
+
+
+==================================================
 FILE: ./data/monsters.json
 ==================================================
 []
@@ -146,23 +1250,536 @@ from engine.ui import (
     menu,
     show_heroes,
     show_enemies,
+    clear_screen,
 )
 
+from engine.dice import roll
+from engine.ai import choose_focus
 
-def run_combat(heroes, enemies):
+from models.enums import RangeBand
+
+import random
+
+
+def remove_dead(enemies):
+
+    return [
+        enemy
+        for enemy in enemies
+        if enemy.hp > 0
+    ]
+
+
+def show_tactical_status(enemies):
+
+    lines = []
+
+    for enemy in enemies:
+
+        if enemy.hp <= 0:
+            continue
+
+        #
+        # Melee engagement
+        #
+
+        if (
+            enemy.rng == RangeBand.MEL
+            and enemy.engaged_target
+        ):
+
+            lines.append(
+                f"{enemy.name}: "
+                f"ENGAGING "
+                f"{enemy.engaged_target}"
+            )
+
+            continue
+
+        #
+        # Archer positioning
+        #
+
+        if enemy.weapon.name == "BOW":
+
+            if enemy.rng == RangeBand.OOM:
+
+                target = (
+                    enemy.focus_target
+                    or "No Target"
+                )
+
+                lines.append(
+                    f"{enemy.name}: "
+                    f"RANGED POSITION "
+                    f"-> {target}"
+                )
+
+            elif enemy.rng == RangeBand.MEL:
+
+                lines.append(
+                    f"{enemy.name}: "
+                    f"ATTEMPTING WITHDRAW"
+                )
+
+            continue
+
+        #
+        # Warrior positioning
+        #
+
+        if enemy.weapon.name == "AXE":
+
+            if enemy.rng == RangeBand.OOM:
+
+                target = (
+                    enemy.focus_target
+                    or "No Target"
+                )
+
+                lines.append(
+                    f"{enemy.name}: "
+                    f"ATTEMPTING ADVANCE "
+                    f"-> {target}"
+                )
+
+    if not lines:
+        return
+
+    print("TACTICAL STATUS")
+    print("----------------")
+
+    for line in lines:
+        print(line)
+
+    print()
+
+
+def show_battlefield(
+    heroes,
+    enemies,
+    acted,
+):
+
+    show_tactical_status(
+        enemies,
+    )
+
+    print("HEROES")
+
+    show_heroes(
+        heroes,
+        acted,
+    )
+
+    print()
+    print("ENEMIES")
+
+    show_enemies(
+        enemies,
+    )
+
+
+def set_enemy_range(enemies):
+
+    if not enemies:
+        print("No enemies.")
+        return
+
+    enemy_index = menu(
+        "Choose Enemy",
+        [e.name for e in enemies],
+    )
+
+    range_index = menu(
+        "Range",
+        [
+            "MEL - In Melee",
+            "OOM - Out of Melee",
+            "OOB - Out of Battle",
+        ],
+    )
+
+    enemies[enemy_index].rng = (
+        list(RangeBand)[range_index]
+    )
+
+
+def hero_attack(
+    heroes,
+    enemies,
+    acted,
+    log,
+):
+
+    available = [
+        hero
+        for hero in heroes
+        if hero.hp > 0
+        and hero.name not in acted
+    ]
+
+    if not available:
+
+        print(
+            "No heroes available."
+        )
+
+        return
+
+    hero = available[
+        menu(
+            "Hero",
+            [h.name for h in available],
+        )
+    ]
+
+    enemy = enemies[
+        menu(
+            "Enemy",
+            [e.name for e in enemies],
+        )
+    ]
+
+    if hero.name == "Wizard":
+
+        if enemy.rng != RangeBand.OOM:
+
+            msg = (
+                f"{hero.name} cannot cast on "
+                f"{enemy.name}. "
+                f"Target must be OOM."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            return
+
+        spell = menu(
+            "Spell",
+            [
+                "Magic Missile",
+                "Fireball",
+            ],
+        )
+
+        if spell == 0:
+
+            damage_expr = "1d8"
+            pen = 2
+
+        else:
+
+            damage_expr = "2d8"
+            pen = 0
+
+        hit = (
+            random.randint(1, 20)
+            + hero.intel
+            >= 10 + enemy.dex
+        )
+
+    else:
+
+        if enemy.rng != RangeBand.MEL:
+
+            msg = (
+                f"{hero.name} cannot attack "
+                f"{enemy.name}. "
+                f"Target must be MEL."
+            )
+
+            print(msg)
+            log.append(msg)
+
+            return
+
+        damage_expr = hero.weapon.damage
+        pen = hero.weapon.pen
+
+        hit = (
+            random.randint(1, 20)
+            + hero.ms
+            >= 10 + enemy.ms
+        )
+
+    acted.add(
+        hero.name
+    )
+
+    if not hit:
+
+        msg = (
+            f"{hero.name} misses "
+            f"{enemy.name}"
+        )
+
+        print(msg)
+        log.append(msg)
+
+        return
+
+    damage = max(
+        1,
+        roll(damage_expr)
+        - max(
+            enemy.arm - pen,
+            0,
+        ),
+    )
+
+    enemy.hp -= damage
+
+    hero.damage_done += damage
+
+    msg = (
+        f"{hero.name} hits "
+        f"{enemy.name} "
+        f"for {damage}"
+    )
+
+    print(msg)
+    log.append(msg)
+
+    if enemy.hp <= 0:
+
+        msg = (
+            f"{enemy.name} "
+            f"is defeated!"
+        )
+
+        print(msg)
+        log.append(msg)
+
+
+def enemy_turn(
+    heroes,
+    enemies,
+    acted,
+    log,
+):
+
+    print()
+    print("=== ENEMY TURN ===")
+
+    for enemy in enemies:
+
+        if enemy.hp <= 0:
+            continue
+
+        targets = [
+            hero
+            for hero in heroes
+            if hero.hp > 0
+        ]
+
+        if not targets:
+            break
+
+        current_target = None
+
+        if enemy.engaged_target:
+
+            current_target = next(
+                (
+                    hero
+                    for hero in targets
+                    if hero.name
+                    == enemy.engaged_target
+                ),
+                None,
+            )
+
+        if current_target is None:
+
+            if enemy.focus_target:
+
+                current_target = next(
+                    (
+                        hero
+                        for hero in targets
+                        if hero.name
+                        == enemy.focus_target
+                    ),
+                    None,
+                )
+
+        if (
+            current_target is None
+            or enemy.focus_rounds <= 0
+        ):
+
+            current_target = choose_focus(
+                enemy,
+                targets,
+            )
+
+            enemy.focus_target = (
+                current_target.name
+            )
+
+            enemy.focus_rounds = 2
+
+        if (
+            enemy.weapon.name == "BOW"
+            and enemy.rng == RangeBand.MEL
+        ):
+
+            enemy.rng = RangeBand.OOM
+            enemy.engaged_target = None
+
+            msg = (
+                f"{enemy.name} withdraws "
+                f"from melee "
+                f"(MEL -> OOM)"
+            )
+
+            print(msg)
+            log.append(msg)
+
+            continue
+
+        if (
+            enemy.weapon.name == "AXE"
+            and enemy.rng == RangeBand.OOM
+        ):
+
+            enemy.rng = RangeBand.MEL
+
+            enemy.engaged_target = (
+                current_target.name
+            )
+
+            msg = (
+                f"{enemy.name} advances "
+                f"toward "
+                f"{current_target.name} "
+                f"(OOM -> MEL)"
+            )
+
+            print(msg)
+            log.append(msg)
+
+            continue
+
+        if enemy.rng == RangeBand.OOB:
+            continue
+
+        if (
+            enemy.weapon.name == "BOW"
+            and enemy.rng != RangeBand.OOM
+        ):
+            continue
+
+        if (
+            enemy.weapon.name == "AXE"
+            and enemy.rng != RangeBand.MEL
+        ):
+            continue
+
+        hit = (
+            random.randint(1, 20)
+            + enemy.ms
+            >= 10 + current_target.ms
+        )
+
+        if hit:
+
+            damage = max(
+                1,
+                roll(enemy.weapon.damage)
+                - max(
+                    current_target.arm
+                    - enemy.weapon.pen,
+                    0,
+                ),
+            )
+
+            current_target.hp -= damage
+
+            msg = (
+                f"{enemy.name} hits "
+                f"{current_target.name} "
+                f"for {damage}"
+            )
+
+        else:
+
+            msg = (
+                f"{enemy.name} misses "
+                f"{current_target.name}"
+            )
+
+        print(msg)
+        log.append(msg)
+
+        if current_target.hp <= 0:
+
+            msg = (
+                f"{current_target.name} "
+                f"is defeated!"
+            )
+
+            print(msg)
+            log.append(msg)
+
+        if enemy.focus_rounds > 0:
+            enemy.focus_rounds -= 1
+
+    enemies[:] = remove_dead(
+        enemies
+    )
+
+
+def show_combat_log(log):
+
+    print()
+    print("=== COMBAT LOG ===")
+
+    if not log:
+        print("No log entries.")
+        return
+
+    for entry in log[-20:]:
+        print(entry)
+
+
+def run_combat(
+    heroes,
+    enemies,
+):
 
     acted = set()
+
     round_num = 1
+
+    log = []
 
     while True:
 
+        clear_screen()
+
+        print(
+            f"=== COMBAT ROUND "
+            f"{round_num} ==="
+        )
+
         print()
-        print(f"=== COMBAT ROUND {round_num} ===")
+
+        show_battlefield(
+            heroes,
+            enemies,
+            acted,
+        )
 
         choice = menu(
             "Action",
             [
-                "Status",
+                "Attack",
+                "Set Enemy Range",
+                "Enemy Turn",
+                "Combat Log",
                 "Next Round",
                 "Quit",
             ],
@@ -170,27 +1787,76 @@ def run_combat(heroes, enemies):
 
         if choice == 0:
 
-            print()
-            print("HEROES")
+            if enemies:
 
-            show_heroes(
-                heroes,
-                acted,
-            )
+                hero_attack(
+                    heroes,
+                    enemies,
+                    acted,
+                    log,
+                )
 
-            print()
-            print("ENEMIES")
+                enemies[:] = remove_dead(
+                    enemies
+                )
 
-            show_enemies(
+            if not enemies:
+
+                print(
+                    "\nAll enemies defeated!"
+                )
+
+                break
+
+            input("\nPress Enter...")
+
+        elif choice == 1:
+
+            set_enemy_range(
                 enemies,
             )
 
-        elif choice == 1:
+            input("\nPress Enter...")
+
+        elif choice == 2:
+
+            enemy_turn(
+                heroes,
+                enemies,
+                acted,
+                log,
+            )
+
+            living_heroes = [
+                hero
+                for hero in heroes
+                if hero.hp > 0
+            ]
+
+            if not living_heroes:
+
+                print(
+                    "\nThe heroes have fallen!"
+                )
+
+                break
+
+            input("\nPress Enter...")
+
+        elif choice == 3:
+
+            show_combat_log(
+                log,
+            )
+
+            input("\nPress Enter...")
+
+        elif choice == 4:
 
             round_num += 1
             acted.clear()
 
-        elif choice == 2:
+        elif choice == 5:
 
             break
 
@@ -227,17 +1893,31 @@ FILE: ./engine/movement.py
 ==================================================
 FILE: ./engine/ui.py
 ==================================================
+import os
+
 from models.enums import RangeBand
 
 
+def clear_screen():
+
+    os.system(
+        "cls"
+        if os.name == "nt"
+        else "clear"
+    )
+
+
 def menu(title, items):
+
     print(f"\n{title}")
 
     for i, item in enumerate(items, 1):
         print(f"{i}. {item}")
 
     while True:
+
         try:
+
             value = int(input("> "))
 
             if 1 <= value <= len(items):
@@ -288,12 +1968,21 @@ def show_enemies(enemies):
             enemy.rng == RangeBand.MEL
             and enemy.engaged_target
         ):
-            engaged = f"({enemy.engaged_target})"
+            engaged = (
+                f"({enemy.engaged_target})"
+            )
 
         focus = ""
 
-        if enemy.focus_target:
-            focus = f" -> {enemy.focus_target}"
+        if (
+            enemy.focus_target
+            and enemy.focus_target
+            != enemy.engaged_target
+        ):
+            focus = (
+                f" -> "
+                f"{enemy.focus_target}"
+            )
 
         print(
             f"{i}. "
@@ -537,6 +2226,67 @@ print('Game Over')
 
 
 ==================================================
+FILE: ./main.py
+==================================================
+from models.hero import Hero
+from models.weapon import Weapon
+
+from encounters.builder import build_encounter
+from engine.combat import run_combat
+
+
+def main():
+
+    fighter_sword = Weapon(
+        "LSWD",
+        "1d8",
+        2,
+    )
+
+    heroes = [
+        Hero(
+            name="Fighter",
+            hp=25,
+            max_hp=25,
+            arm=4,
+            str_=7,
+            dex=5,
+            ms=7,
+            rs=1,
+            intel=2,
+            weapon=fighter_sword,
+        ),
+        Hero(
+            name="Wizard",
+            hp=12,
+            max_hp=12,
+            arm=1,
+            str_=2,
+            dex=4,
+            ms=2,
+            rs=2,
+            intel=8,
+            weapon=Weapon(
+                "MM",
+                "1d8",
+                2,
+            ),
+        ),
+    ]
+
+    enemies = build_encounter()
+
+    run_combat(
+        heroes,
+        enemies,
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+
+==================================================
 FILE: ./models/__init__.py
 ==================================================
 # models package
@@ -554,22 +2304,15 @@ from models.weapon import Weapon
 @dataclass
 class Enemy:
     name: str
-
     hp: int
     max_hp: int
-
     arm: int
-
     str_: int
     dex: int
-
     ms: int
-
     morale: int
     pack: int
-
     weapon: Weapon
-
     rng: RangeBand
 
     focus_target: str | None = None
