@@ -15,6 +15,7 @@ from models.enemy import Enemy
 from models.enums import RangeBand
 from encounters.builder import build_encounter
 from game_session import GameSession
+from data_loader import load_heroes_from_json, load_enemies_from_json
 
 import os
 
@@ -38,6 +39,15 @@ class HeroAttackRequest(BaseModel):
     spell_index: Optional[int] = None
 
 
+class EncounterConfigRequest(BaseModel):
+    pass
+
+
+class EncounterCustomRequest(BaseModel):
+    hero_quantities: dict[str, int]
+    enemy_quantities: dict[str, int]
+
+
 class SetEnemyRangeRequest(BaseModel):
     enemy_name: str
     range_band: str  # "MEL", "OOM", "OOB"
@@ -53,6 +63,68 @@ class ReinforcementRequest(BaseModel):
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
+
+
+# API: Get encounter configuration (available heroes and enemies)
+@app.get("/api/encounter-config")
+async def get_encounter_config():
+    heroes = load_heroes_from_json()
+    enemies = load_enemies_from_json()
+    
+    def serialize_unit(unit):
+        return {
+            "id": unit.name.lower().replace(" ", "_"),
+            "name": unit.name,
+            "hp": unit.max_hp,
+            "arm": unit.arm,
+            "weapon": unit.weapon.name if unit.weapon else None,
+        }
+    
+    return {
+        "heroes": [serialize_unit(h) for h in heroes],
+        "enemies": [serialize_unit(e) for e in enemies],
+    }
+
+
+# API: Start custom encounter
+@app.post("/api/encounter-custom")
+async def encounter_custom(request: EncounterCustomRequest):
+    global current_session
+    
+    import copy
+    
+    all_heroes_templates = load_heroes_from_json()
+    all_enemies_templates = load_enemies_from_json()
+    
+    selected_heroes = []
+    for hero_id, quantity in request.hero_quantities.items():
+        if quantity > 0:
+            template = next((h for h in all_heroes_templates if h.name.lower().replace(" ", "_") == hero_id), None)
+            if template:
+                for i in range(quantity):
+                    # Deep copy the template to create a new instance
+                    hero_copy = copy.deepcopy(template)
+                    if quantity > 1:
+                        hero_copy.name = f"{template.name} #{i+1}"
+                    selected_heroes.append(hero_copy)
+    
+    selected_enemies = []
+    for enemy_id, quantity in request.enemy_quantities.items():
+        if quantity > 0:
+            template = next((e for e in all_enemies_templates if e.name.lower().replace(" ", "_") == enemy_id), None)
+            if template:
+                for i in range(quantity):
+                    # Deep copy the template to create a new instance
+                    enemy_copy = copy.deepcopy(template)
+                    if quantity > 1:
+                        enemy_copy.name = f"{template.name} #{i+1}"
+                    selected_enemies.append(enemy_copy)
+    
+    if not selected_heroes or not selected_enemies:
+        raise HTTPException(status_code=400, detail="Must select at least one hero and one enemy")
+    
+    current_session = GameSession(selected_heroes, selected_enemies)
+    return current_session.get_state()
 
 
 # API: Create new encounter

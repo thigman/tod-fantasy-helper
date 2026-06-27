@@ -455,6 +455,27 @@
             </div>
         </div>
 
+        <!-- Encounter Builder Modal -->
+        <div class="modal" id="encounterBuilderModal">
+            <div class="modal-content">
+                <h2>Build Encounter</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="color: #4a9eff; margin-bottom: 10px;">Select Heroes</h3>
+                        <div id="heroQuantities" style="border: 1px solid #444; padding: 10px; border-radius: 4px;"></div>
+                    </div>
+                    <div>
+                        <h3 style="color: #4a9eff; margin-bottom: 10px;">Select Enemies</h3>
+                        <div id="enemyQuantities" style="border: 1px solid #444; padding: 10px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="primary" onclick="startCustomEncounter()">Start Battle</button>
+                    <button onclick="closeModal('encounterBuilderModal'); showStartScreen();">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Battle Over Modal -->
         <div class="battle-over" id="battleOverScreen">
             <div class="battle-over-content">

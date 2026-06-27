@@ -1,0 +1,57 @@
+[
+    {
+        "id": "fighter",
+        "name": "Fighter",
+        "hp": 25,
+        "arm": 4,
+        "str": 7,
+        "dex": 5,
+        "ms": 7,
+        "rs": 1,
+        "spd": 6,
+        "intel": 2,
+        "weapon": {
+            "name": "LSWD",
+            "damage": "1d8",
+            "pen": 2
+        },
+        "secondary_weapon": null,
+        "spells": []
+    },
+    {
+        "id": "wizard",
+        "name": "Wizard",
+        "hp": 12,
+        "arm": 1,
+        "str": 2,
+        "dex": 4,
+        "ms": 2,
+        "rs": 2,
+        "spd": 6,
+        "intel": 8,
+        "weapon": {
+            "name": "MM",
+            "damage": "1d8",
+            "pen": 2
+        },
+        "secondary_weapon": {
+            "name": "DAG",
+            "damage": "1d4",
+            "pen": 0
+        },
+        "spells": [
+            {
+                "name": "Magic Missile",
+                "damage": "1d8",
+                "pen": 2,
+                "area": false
+            },
+            {
+                "name": "Fireball",
+                "damage": "2d8",
+                "pen": 0,
+                "area": true
+            }
+        ]
+    }
+]

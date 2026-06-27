@@ -38,24 +38,177 @@ document.addEventListener("DOMContentLoaded", async () => {
     // No active session - show start screen
 });
 
-// Start a new game
+// Start a new game (show encounter builder)
 async function startGame() {
+    await showEncounterBuilder();
+}
+
+function showStartScreen() {
+    const startScreen = document.getElementById("startScreen");
+    startScreen.classList.add("show");
+}
+
+async function showEncounterBuilder() {
     try {
-        const response = await fetch(`${API_BASE}/new-encounter`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
+        const response = await fetch(`${API_BASE}/encounter-config`);
+        if (!response.ok) throw new Error("Failed to load encounter config");
+
+        const config = await response.json();
+        
+        // Initialize quantities
+        window.heroQuantities = {};
+        window.enemyQuantities = {};
+        config.heroes.forEach(h => window.heroQuantities[h.id] = 0);
+        config.enemies.forEach(e => window.enemyQuantities[e.id] = 0);
+
+        // Create hero quantity controls
+        const heroDiv = document.getElementById("heroQuantities");
+        heroDiv.innerHTML = "";
+        config.heroes.forEach((hero) => {
+            const container = document.createElement("div");
+            container.style.display = "flex";
+            container.style.alignItems = "center";
+            container.style.justifyContent = "space-between";
+            container.style.marginBottom = "10px";
+            container.style.padding = "8px";
+            container.style.backgroundColor = "#2a2a2a";
+            container.style.borderRadius = "4px";
+
+            const label = document.createElement("span");
+            label.textContent = `${hero.name}`;
+            label.style.flex = "1";
+
+            const controls = document.createElement("div");
+            controls.style.display = "flex";
+            controls.style.alignItems = "center";
+            controls.style.gap = "5px";
+
+            const minusBtn = document.createElement("button");
+            minusBtn.textContent = "−";
+            minusBtn.style.width = "30px";
+            minusBtn.style.padding = "5px";
+            minusBtn.onclick = () => {
+                if (window.heroQuantities[hero.id] > 0) {
+                    window.heroQuantities[hero.id]--;
+                    display.textContent = window.heroQuantities[hero.id];
+                }
+            };
+
+            const display = document.createElement("span");
+            display.textContent = "0";
+            display.style.width = "30px";
+            display.style.textAlign = "center";
+
+            const plusBtn = document.createElement("button");
+            plusBtn.textContent = "+";
+            plusBtn.style.width = "30px";
+            plusBtn.style.padding = "5px";
+            plusBtn.onclick = () => {
+                window.heroQuantities[hero.id]++;
+                display.textContent = window.heroQuantities[hero.id];
+            };
+
+            controls.appendChild(minusBtn);
+            controls.appendChild(display);
+            controls.appendChild(plusBtn);
+
+            container.appendChild(label);
+            container.appendChild(controls);
+            heroDiv.appendChild(container);
         });
 
-        if (!response.ok) throw new Error("Failed to start game");
+        // Create enemy quantity controls
+        const enemyDiv = document.getElementById("enemyQuantities");
+        enemyDiv.innerHTML = "";
+        config.enemies.forEach((enemy) => {
+            const container = document.createElement("div");
+            container.style.display = "flex";
+            container.style.alignItems = "center";
+            container.style.justifyContent = "space-between";
+            container.style.marginBottom = "10px";
+            container.style.padding = "8px";
+            container.style.backgroundColor = "#2a2a2a";
+            container.style.borderRadius = "4px";
+
+            const label = document.createElement("span");
+            label.textContent = `${enemy.name}`;
+            label.style.flex = "1";
+
+            const controls = document.createElement("div");
+            controls.style.display = "flex";
+            controls.style.alignItems = "center";
+            controls.style.gap = "5px";
+
+            const minusBtn = document.createElement("button");
+            minusBtn.textContent = "−";
+            minusBtn.style.width = "30px";
+            minusBtn.style.padding = "5px";
+            minusBtn.onclick = () => {
+                if (window.enemyQuantities[enemy.id] > 0) {
+                    window.enemyQuantities[enemy.id]--;
+                    display.textContent = window.enemyQuantities[enemy.id];
+                }
+            };
+
+            const display = document.createElement("span");
+            display.textContent = "0";
+            display.style.width = "30px";
+            display.style.textAlign = "center";
+
+            const plusBtn = document.createElement("button");
+            plusBtn.textContent = "+";
+            plusBtn.style.width = "30px";
+            plusBtn.style.padding = "5px";
+            plusBtn.onclick = () => {
+                window.enemyQuantities[enemy.id]++;
+                display.textContent = window.enemyQuantities[enemy.id];
+            };
+
+            controls.appendChild(minusBtn);
+            controls.appendChild(display);
+            controls.appendChild(plusBtn);
+
+            container.appendChild(label);
+            container.appendChild(controls);
+            enemyDiv.appendChild(container);
+        });
+
+        document.getElementById("startScreen").classList.remove("show");
+        document.getElementById("encounterBuilderModal").classList.add("show");
+    } catch (error) {
+        console.error("Encounter builder error:", error);
+        alert("Failed to load encounter options");
+    }
+}
+
+async function startCustomEncounter() {
+    const totalHeroes = Object.values(window.heroQuantities).reduce((a, b) => a + b, 0);
+    const totalEnemies = Object.values(window.enemyQuantities).reduce((a, b) => a + b, 0);
+
+    if (totalHeroes === 0 || totalEnemies === 0) {
+        alert("Select at least one hero and one enemy");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/encounter-custom`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                hero_quantities: window.heroQuantities,
+                enemy_quantities: window.enemyQuantities,
+            }),
+        });
+
+        if (!response.ok) throw new Error("Failed to start encounter");
 
         gameState = await response.json();
+        closeModal("encounterBuilderModal");
         showGameUI();
         updateDisplay();
-        console.log("Game state heroes:", gameState.heroes);
     } catch (error) {
-        console.error("Start game error:", error);
-        alert("Failed to start game");
+        console.error("Start custom encounter error:", error);
+        alert("Failed to start battle");
     }
 }
 

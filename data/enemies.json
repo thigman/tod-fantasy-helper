@@ -1,0 +1,48 @@
+[
+    {
+        "id": "orc_warrior",
+        "name": "Orc Warrior",
+        "hp": 16,
+        "arm": 3,
+        "str": 6,
+        "dex": 4,
+        "ms": 6,
+        "spd": 6,
+        "morale": 5,
+        "pack": 7,
+        "weapon": {
+            "name": "AXE",
+            "damage": "1d8",
+            "pen": 2
+        },
+        "secondary_weapon": {
+            "name": "CLAW",
+            "damage": "1d4",
+            "pen": 0
+        },
+        "spells": []
+    },
+    {
+        "id": "orc_archer",
+        "name": "Orc Archer",
+        "hp": 12,
+        "arm": 1,
+        "str": 4,
+        "dex": 5,
+        "ms": 4,
+        "spd": 6,
+        "morale": 5,
+        "pack": 5,
+        "weapon": {
+            "name": "BOW",
+            "damage": "1d6",
+            "pen": 1
+        },
+        "secondary_weapon": {
+            "name": "CLAW",
+            "damage": "1d4",
+            "pen": 0
+        },
+        "spells": []
+    }
+]
