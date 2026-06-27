@@ -10,8 +10,20 @@ let selectedRange = null;
 
 const API_BASE = "/api";
 
+// Load and display version
+async function loadVersion() {
+    try {
+        const response = await fetch(`${API_BASE}/version`);
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById("versionDisplay").textContent = data.version;
+        }
+    } catch (_) {}
+}
+
 // Initialize - reconnect to active session if one exists
 document.addEventListener("DOMContentLoaded", async () => {
+    loadVersion();
     try {
         const response = await fetch(`${API_BASE}/game-state`);
         if (response.ok) {
@@ -40,6 +52,7 @@ async function startGame() {
         gameState = await response.json();
         showGameUI();
         updateDisplay();
+        console.log("Game state heroes:", gameState.heroes);
     } catch (error) {
         console.error("Start game error:", error);
         alert("Failed to start game");
@@ -152,6 +165,12 @@ function createUnitElement(unit, type) {
         <div class="stat">
             <span class="stat-label">WPN2:</span>
             <span class="stat-value">${unit.secondary_weapon.name} (${unit.secondary_weapon.damage}, pen ${unit.secondary_weapon.pen})</span>
+        </div>
+        ` : ''}
+        ${unit.spells && unit.spells.length > 0 ? `
+        <div class="stat">
+            <span class="stat-label">SPELLS:</span>
+            <span class="stat-value">${unit.spells.map(s => `${s.name} (${s.damage}, pen ${s.pen})${s.area ? ' [AREA]' : ''}`).join(' | ')}</span>
         </div>
         ` : ''}
     `;
@@ -319,7 +338,7 @@ function selectHeroForAttack(hero) {
     closeModal("heroAttackModal");
 
     // If wizard, show spell selection. Otherwise show enemy selection
-    if (hero.weapon === "MM") {
+    if (hero.weapon.name === "MM") {
         showSpellSelection();
     } else {
         showEnemySelection("for attack");

@@ -1,7 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from models.enums import RangeBand
 from models.weapon import Weapon
+from models.spell import Spell
 
 
 @dataclass
@@ -18,6 +19,7 @@ class Enemy:
     pack: int
     weapon: Weapon
     secondary_weapon: Weapon | None = None
+    spells: list[Spell] = field(default_factory=list)
     rng: RangeBand = RangeBand.OOM
 
     # AI state

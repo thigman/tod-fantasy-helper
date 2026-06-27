@@ -16,6 +16,7 @@ from models.enemy import Enemy
 from models.hero import Hero
 from models.enums import RangeBand
 from models.weapon import Weapon
+from models.spell import Spell
 
 import random
 
@@ -314,6 +315,7 @@ def build_hero_reinforcement(
                 2,
             ),
             secondary_weapon=None,
+            spells=[],
         )
 
     if hero_type == "Wizard":
@@ -344,6 +346,10 @@ def build_hero_reinforcement(
                 "1d4",
                 0,
             ),
+            spells=[
+                Spell("Magic Missile", "1d8", 2, area=False),
+                Spell("Fireball", "2d8", 0, area=True),
+            ],
         )
 
     return None

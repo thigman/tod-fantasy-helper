@@ -10,12 +10,15 @@ from typing import Optional
 
 from models.hero import Hero
 from models.weapon import Weapon
+from models.spell import Spell
 from models.enemy import Enemy
 from models.enums import RangeBand
 from encounters.builder import build_encounter
 from game_session import GameSession
 
 import os
+
+VERSION = "0.1.0"
 
 app = FastAPI()
 
@@ -59,7 +62,6 @@ async def new_encounter(request: NewEncounterRequest):
 
     # Build default hero party
     fighter_sword = Weapon("LSWD", "1d8", 2)
-    fighter_bow = Weapon("BOW", "1d6", 1)
     
     wizard_mm = Weapon("MM", "1d8", 2)
     wizard_dagger = Weapon("DAG", "1d4", 0)
@@ -79,7 +81,8 @@ async def new_encounter(request: NewEncounterRequest):
             spd=6,
             intel=2,
             weapon=fighter_sword,
-            secondary_weapon=fighter_bow,
+            secondary_weapon=None,
+            spells=[],
         ),
         Hero(
             name="Wizard",
@@ -94,6 +97,10 @@ async def new_encounter(request: NewEncounterRequest):
             intel=8,
             weapon=wizard_mm,
             secondary_weapon=wizard_dagger,
+            spells=[
+                Spell("Magic Missile", "1d8", 2, area=False),
+                Spell("Fireball", "2d8", 0, area=True),
+            ],
         ),
     ]
 
@@ -112,6 +119,7 @@ async def new_encounter(request: NewEncounterRequest):
             pack=7,
             weapon=Weapon("AXE", "1d8", 2),
             secondary_weapon=claw,
+            spells=[],
             rng=RangeBand.OOM,
         ),
         Enemy(
@@ -127,6 +135,7 @@ async def new_encounter(request: NewEncounterRequest):
             pack=5,
             weapon=Weapon("BOW", "1d6", 1),
             secondary_weapon=claw,
+            spells=[],
             rng=RangeBand.OOM,
         ),
     ]
@@ -142,6 +151,12 @@ async def get_game_state():
         raise HTTPException(status_code=400, detail="No active game session")
 
     return current_session.get_state()
+
+
+# API: Get version
+@app.get("/api/version")
+async def get_version():
+    return {"version": VERSION}
 
 
 # API: Hero action

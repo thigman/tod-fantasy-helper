@@ -6,6 +6,7 @@ Wraps combat logic into a stateful API.
 from models.hero import Hero
 from models.enemy import Enemy
 from models.weapon import Weapon
+from models.spell import Spell
 from models.enums import RangeBand
 from engine.combat import (
     hero_is_engaged,
@@ -78,6 +79,15 @@ class GameSession:
                 "damage": hero.secondary_weapon.damage,
                 "pen": hero.secondary_weapon.pen,
             } if hero.secondary_weapon else None,
+            "spells": [
+                {
+                    "name": spell.name,
+                    "damage": spell.damage,
+                    "pen": spell.pen,
+                    "area": spell.area,
+                }
+                for spell in hero.spells
+            ],
             "damage_done": hero.damage_done,
             "alive": hero.hp > 0,
         }
@@ -105,6 +115,15 @@ class GameSession:
                 "damage": enemy.secondary_weapon.damage,
                 "pen": enemy.secondary_weapon.pen,
             } if enemy.secondary_weapon else None,
+            "spells": [
+                {
+                    "name": spell.name,
+                    "damage": spell.damage,
+                    "pen": spell.pen,
+                    "area": spell.area,
+                }
+                for spell in enemy.spells
+            ],
             "rng": enemy.rng.name,
             "focus_target": enemy.focus_target,
             "engaged_target": enemy.engaged_target,
