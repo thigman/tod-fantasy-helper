@@ -68,8 +68,16 @@ class GameSession:
             "rs": hero.rs,
             "spd": hero.spd,
             "intel": hero.intel,
-            "weapon": hero.weapon.name,
-            "secondary_weapon": hero.secondary_weapon.name if hero.secondary_weapon else None,
+            "weapon": {
+                "name": hero.weapon.name,
+                "damage": hero.weapon.damage,
+                "pen": hero.weapon.pen,
+            },
+            "secondary_weapon": {
+                "name": hero.secondary_weapon.name,
+                "damage": hero.secondary_weapon.damage,
+                "pen": hero.secondary_weapon.pen,
+            } if hero.secondary_weapon else None,
             "damage_done": hero.damage_done,
             "alive": hero.hp > 0,
         }
@@ -87,8 +95,16 @@ class GameSession:
             "spd": enemy.spd,
             "morale": enemy.morale,
             "pack": enemy.pack,
-            "weapon": enemy.weapon.name,
-            "secondary_weapon": enemy.secondary_weapon.name if enemy.secondary_weapon else None,
+            "weapon": {
+                "name": enemy.weapon.name,
+                "damage": enemy.weapon.damage,
+                "pen": enemy.weapon.pen,
+            },
+            "secondary_weapon": {
+                "name": enemy.secondary_weapon.name,
+                "damage": enemy.secondary_weapon.damage,
+                "pen": enemy.secondary_weapon.pen,
+            } if enemy.secondary_weapon else None,
             "rng": enemy.rng.name,
             "focus_target": enemy.focus_target,
             "engaged_target": enemy.engaged_target,

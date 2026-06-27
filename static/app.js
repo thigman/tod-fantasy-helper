@@ -146,12 +146,12 @@ function createUnitElement(unit, type) {
         </div>
         <div class="stat">
             <span class="stat-label">WPN:</span>
-            <span class="stat-value">${unit.weapon}</span>
+            <span class="stat-value">${unit.weapon.name} (${unit.weapon.damage}, pen ${unit.weapon.pen})</span>
         </div>
         ${unit.secondary_weapon ? `
         <div class="stat">
             <span class="stat-label">WPN2:</span>
-            <span class="stat-value">${unit.secondary_weapon}</span>
+            <span class="stat-value">${unit.secondary_weapon.name} (${unit.secondary_weapon.damage}, pen ${unit.secondary_weapon.pen})</span>
         </div>
         ` : ''}
     `;

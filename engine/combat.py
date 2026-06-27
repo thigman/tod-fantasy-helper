@@ -313,11 +313,7 @@ def build_hero_reinforcement(
                 "1d8",
                 2,
             ),
-            secondary_weapon=Weapon(
-                "BOW",
-                "1d6",
-                1,
-            ),
+            secondary_weapon=None,
         )
 
     if hero_type == "Wizard":
