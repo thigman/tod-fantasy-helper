@@ -44,5 +44,51 @@
             "pen": 0
         },
         "spells": []
+    },
+    {
+        "id": "skeleton_sword",
+        "name": "Skeleton Sword",
+        "hp": 12,
+        "arm": 1,
+        "str": 4,
+        "dex": 4,
+        "ms": 5,
+        "spd": 5,
+        "morale": 0,
+        "pack": 0,
+        "weapon": {
+            "name": "AXE",
+            "damage": "1d8",
+            "pen": 1
+        },
+        "secondary_weapon": {
+            "name": "CLAW",
+            "damage": "1d3",
+            "pen": 0
+        },
+        "spells": []
+    },
+    {
+        "id": "skeleton_bow",
+        "name": "Skeleton Bow",
+        "hp": 10,
+        "arm": 1,
+        "str": 3,
+        "dex": 5,
+        "ms": 3,
+        "spd": 5,
+        "morale": 0,
+        "pack": 0,
+        "weapon": {
+            "name": "BOW",
+            "damage": "1d6",
+            "pen": 1
+        },
+        "secondary_weapon": {
+            "name": "CLAW",
+            "damage": "1d3",
+            "pen": 0
+        },
+        "spells": []
     }
 ]

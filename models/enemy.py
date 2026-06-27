@@ -26,8 +26,9 @@ class Enemy:
     focus_target: str | None = None
     focus_rounds: int = 0
 
-    # Melee engagement
-    engaged_target: str | None = None
+    # Melee engagement - MEL means in melee WITH these specific heroes
+    melee_with: list[str] = field(default_factory=list)  # Heroes this enemy is in melee with
+    engaged_target: str | None = None  # Preferred focus target (can be None for open melee)
 
     # Morale state
     morale_state: str = "STEADY"

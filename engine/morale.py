@@ -74,6 +74,7 @@ def update_morale(
 ):
     """
     Apply morale state to all living enemies.
+    Enemies with morale=0 (like skeletons) always stay STEADY.
     """
 
     morale_state = calculate_morale_state(
@@ -86,6 +87,10 @@ def update_morale(
         if enemy.hp <= 0:
             continue
 
-        enemy.morale_state = morale_state
+        # Enemies with no morale (skeletons, etc.) are never affected
+        if enemy.morale == 0:
+            enemy.morale_state = "STEADY"
+        else:
+            enemy.morale_state = morale_state
 
     return morale_state

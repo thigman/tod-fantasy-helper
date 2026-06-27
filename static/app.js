@@ -345,12 +345,15 @@ function createUnitElement(unit, type) {
         tacticalDiv.className = "tactical";
         let tacticalInfo = `${unit.rng}`;
         
+        // Show melee relationships
         if (unit.rng === "MEL") {
-            // Show all heroes that can engage in melee
-            if (unit.engaging_heroes && unit.engaging_heroes.length > 0) {
-                tacticalInfo += ` | Engaging: ${unit.engaging_heroes.join(", ")}`;
+            if (unit.melee_with && unit.melee_with.length > 0) {
+                tacticalInfo += ` with ${unit.melee_with.join(", ")}`;
             } else {
-                tacticalInfo += ` | In Melee`;
+                tacticalInfo += ` (open - no heroes assigned)`;
+            }
+            if (unit.focus_target && unit.melee_with.includes(unit.focus_target)) {
+                tacticalInfo += ` | Focus: ${unit.focus_target}`;
             }
         } else if (unit.focus_target) {
             tacticalInfo += ` | Focusing ${unit.focus_target}`;
@@ -501,7 +504,7 @@ function selectHeroForAttack(hero) {
     if (hero.weapon.name === "MM") {
         showSpellSelection();
     } else {
-        showEnemySelection("melee");
+        showEnemySelection("all");
     }
 }
 
@@ -517,23 +520,29 @@ function showEnemySelection(attackType = "melee") {
     
     // Filter by range requirement
     if (attackType === "melee") {
-        // Hero can do melee attacks if there are any MEL enemies
-        const anythingInMEL = gameState.enemies.some((e) => e.rng === "MEL");
-        if (!anythingInMEL) {
+        // For melee attacks, hero must be in the enemy's melee_with list
+        availableEnemies = availableEnemies.filter((e) => 
+            e.rng === "MEL" && e.melee_with && e.melee_with.includes(selectedHeroForAttack.name)
+        );
+        
+        if (availableEnemies.length === 0) {
             const msg = document.createElement("div");
             msg.style.padding = "10px";
             msg.style.color = "#ff6b6b";
-            msg.textContent = `No enemies in melee range - cannot attack`;
+            msg.textContent = `${selectedHeroForAttack.name} is not in melee with any enemies`;
             enemyList.appendChild(msg);
             document.getElementById("enemyModalTitle").textContent = "Select Enemy (MEL Range)";
             document.getElementById("enemySelectModal").classList.add("show");
             return;
         }
-        
-        // Can attack any MEL enemy (multiple heroes can pile on)
-        availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
+    } else if (attackType === "ranged") {
+        // For ranged attacks (BOW), only target OOM enemies
+        availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
     } else if (attackType === "spell") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
+    } else if (attackType === "all") {
+        // Show all enemies (for ranged heroes who can use secondary for melee)
+        // No filtering needed
     }
 
     if (availableEnemies.length === 0) {
@@ -542,8 +551,12 @@ function showEnemySelection(attackType = "melee") {
         msg.style.color = "#ff6b6b";
         if (attackType === "melee") {
             msg.textContent = "No MEL enemies available to attack";
+        } else if (attackType === "ranged") {
+            msg.textContent = "No enemies out of melee (OOM) for ranged attack";
         } else if (attackType === "spell") {
             msg.textContent = "No enemies out of melee (OOM)";
+        } else if (attackType === "all") {
+            msg.textContent = "No enemies available to attack";
         }
         enemyList.appendChild(msg);
     } else {
@@ -559,8 +572,12 @@ function showEnemySelection(attackType = "melee") {
     let title = "Select Enemy";
     if (attackType === "melee") {
         title += " (MEL Range)";
+    } else if (attackType === "ranged") {
+        title += " (OOM Range - Ranged)";
     } else if (attackType === "spell") {
         title += " (OOM Range)";
+    } else if (attackType === "all") {
+        title += " (Melee or Ranged)";
     }
     
     document.getElementById("enemyModalTitle").textContent = title;

@@ -53,5 +53,28 @@
                 "area": true
             }
         ]
+    },
+    {
+        "id": "ranger",
+        "name": "Ranger",
+        "hp": 20,
+        "arm": 3,
+        "str": 6,
+        "dex": 7,
+        "ms": 6,
+        "rs": 3,
+        "spd": 6,
+        "intel": 3,
+        "weapon": {
+            "name": "BOW",
+            "damage": "1d6",
+            "pen": 1
+        },
+        "secondary_weapon": {
+            "name": "LSWD",
+            "damage": "1d8",
+            "pen": 2
+        },
+        "spells": []
     }
 ]

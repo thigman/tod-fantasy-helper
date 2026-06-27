@@ -119,11 +119,6 @@ class GameSession:
 
     def _serialize_enemy(self, enemy):
         """Convert Enemy to dict."""
-        # Get all heroes that can attack this enemy
-        engaging_heroes = []
-        if enemy.rng == "MEL":
-            engaging_heroes = [h.name for h in self.heroes if h.hp > 0]
-        
         return {
             "name": enemy.name,
             "hp": enemy.hp,
@@ -156,8 +151,7 @@ class GameSession:
             ],
             "rng": enemy.rng.name,
             "focus_target": enemy.focus_target,
-            "engaged_target": enemy.engaged_target,
-            "engaging_heroes": engaging_heroes,
+            "melee_with": enemy.melee_with,
             "morale_state": enemy.morale_state,
             "alive": enemy.hp > 0,
         }
@@ -255,18 +249,54 @@ class GameSession:
 
             hit = random.randint(1, 20) + hero.intel >= 10 + max(t.dex for t in targets)
 
-        # Melee attack
+        # Non-wizard attacks: check target range first
         else:
-            if targets[0].rng != RangeBand.MEL:
-                msg = f"{hero.name} cannot attack {targets[0].name}. Target must be MEL."
+            target_is_mel = targets[0].rng == RangeBand.MEL
+            target_is_oom = targets[0].rng == RangeBand.OOM
+
+            # Melee attack (target must be MEL)
+            if target_is_mel:
+                # For melee attack, hero must be in the enemy's melee_with list
+                if hero.name not in targets[0].melee_with:
+                    msg = f"{hero.name} is not in melee with {targets[0].name} and cannot attack."
+                    self.log.append(msg)
+                    return {"success": False, "error": msg}
+
+                # If primary weapon is ranged (BOW), use secondary weapon for melee
+                if hero.weapon.name == "BOW" and hero.secondary_weapon:
+                    damage_expr = hero.secondary_weapon.damage
+                    pen = hero.secondary_weapon.pen
+                else:
+                    damage_expr = hero.weapon.damage
+                    pen = hero.weapon.pen
+
+                spell_name = None
+                hit = random.randint(1, 20) + hero.ms >= 10 + targets[0].ms
+
+            # Ranged attack (target must be OOM)
+            elif target_is_oom:
+                # Only BOW weapons can attack OOM
+                if hero.weapon.name != "BOW":
+                    msg = f"{hero.name} cannot attack {targets[0].name} at OOM range."
+                    self.log.append(msg)
+                    return {"success": False, "error": msg}
+
+                if hero_is_engaged(hero.name, self.enemies):
+                    msg = f"{hero.name} cannot make ranged attacks while engaged in melee."
+                    self.log.append(msg)
+                    return {"success": False, "error": msg}
+
+                damage_expr = hero.weapon.damage
+                pen = hero.weapon.pen
+                spell_name = None
+
+                # Ranged attacks use RS (ranged strength)
+                hit = random.randint(1, 20) + hero.rs >= 10 + max(t.dex for t in targets)
+
+            else:
+                msg = f"{hero.name} cannot attack {targets[0].name} at that range."
                 self.log.append(msg)
                 return {"success": False, "error": msg}
-
-            damage_expr = hero.weapon.damage
-            pen = hero.weapon.pen
-            spell_name = None
-
-            hit = random.randint(1, 20) + hero.ms >= 10 + targets[0].ms
 
         # Mark hero as acted
         self.acted.add(hero.name)
@@ -303,8 +333,8 @@ class GameSession:
         # Remove dead enemies
         self.enemies[:] = remove_dead(self.enemies)
 
-        # Check for victory
-        if not self.enemies:
+        # Check for victory (all enemies dead or OOB)
+        if not self.enemies or all(e.rng == RangeBand.OOB for e in self.enemies):
             self.battle_over = True
             self.battle_result = "HERO VICTORY"
 
@@ -365,52 +395,45 @@ class GameSession:
                 self.enemy_acted.add(enemy.name)
                 continue
 
-            # Validate target is in valid range
-            # Ranged enemies (BOW) can only attack OOM targets
-            # A hero is OOM if no enemy is engaged with them
-            if enemy.weapon.name == "BOW":
-                hero_is_engaged = any(
-                    e.engaged_target == current_target.name 
-                    for e in self.enemies 
-                    if e.name != enemy.name
-                )
-                if hero_is_engaged:
-                    # Search for a valid OOM target
-                    oom_targets = [
+            # Validate target based on range and melee relationships
+            # For MEL enemies: must target a hero in their melee_with list
+            if enemy.rng == RangeBand.MEL and enemy.weapon.name == "AXE":
+                if not enemy.melee_with or current_target.name not in enemy.melee_with:
+                    # Current target not in melee - find valid melee target
+                    valid_mel_targets = [
                         h for h in heroes_alive 
-                        if not any(e.engaged_target == h.name for e in self.enemies if e.name != enemy.name)
+                        if h.name in enemy.melee_with
                     ]
-                    if oom_targets:
-                        current_target = oom_targets[0]  # Pick first available OOM target
-                        enemy.focus_target = current_target.name
-                        enemy.focus_rounds = 2
-                    else:
-                        msg = f"{enemy.name} cannot find valid ranged targets"
-                        self.log.append(msg)
-                        self.enemy_acted.add(enemy.name)
-                        continue
-
-            # Melee enemies (AXE) in MEL range can attack any MEL hero
-            # Multiple heroes can engage one enemy, so no single-target lock
-            if enemy.weapon.name == "AXE" and enemy.rng == RangeBand.MEL:
-                # If current target is OOM, find a MEL target
-                hero_is_engaged = any(
-                    e.engaged_target == current_target.name 
-                    for e in self.enemies 
-                    if e.name != enemy.name
-                )
-                if not hero_is_engaged:
-                    # Target is OOM, find any MEL hero
-                    mel_targets = [
-                        h for h in heroes_alive
-                        if any(e.engaged_target == h.name for e in self.enemies if e.name != enemy.name)
-                    ]
-                    if mel_targets:
-                        current_target = mel_targets[0]
+                    if valid_mel_targets:
+                        current_target = valid_mel_targets[0]
                         enemy.focus_target = current_target.name
                         enemy.focus_rounds = 2
                     else:
                         msg = f"{enemy.name} cannot find valid melee targets"
+                        self.log.append(msg)
+                        self.enemy_acted.add(enemy.name)
+                        continue
+
+            # For OOM ranged enemies (BOW): can only attack heroes not in melee
+            if enemy.weapon.name == "BOW" and enemy.rng == RangeBand.OOM:
+                # Check if target is in any enemy's melee_with list
+                target_is_in_melee = any(
+                    current_target.name in e.melee_with
+                    for e in self.enemies
+                    if e.name != enemy.name
+                )
+                if target_is_in_melee:
+                    # Find a valid OOM target (not in any melee)
+                    oom_targets = [
+                        h for h in heroes_alive
+                        if not any(h.name in e.melee_with for e in self.enemies)
+                    ]
+                    if oom_targets:
+                        current_target = oom_targets[0]
+                        enemy.focus_target = current_target.name
+                        enemy.focus_rounds = 2
+                    else:
+                        msg = f"{enemy.name} cannot find valid ranged targets"
                         self.log.append(msg)
                         self.enemy_acted.add(enemy.name)
                         continue
@@ -460,18 +483,23 @@ class GameSession:
         # Remove dead heroes
         self.heroes[:] = [h for h in self.heroes if h.hp > 0 or h.hp <= 0]
 
-        # Check for defeat
+        # Check for defeat (all heroes dead)
         if not any(h.hp > 0 for h in self.heroes):
             self.battle_over = True
             self.battle_result = "ENEMY VICTORY"
+
+        # Check for victory (all enemies dead or OOB)
+        if all(e.hp <= 0 or e.rng == RangeBand.OOB for e in self.enemies):
+            self.battle_over = True
+            self.battle_result = "HERO VICTORY"
 
         return {"success": True, "message": "Enemy turn complete"}
 
     def set_enemy_range(self, enemy_name, range_band, engaged_hero=None):
         """Set enemy's range band.
         
-        For MEL: engaged_hero is optional. If provided, sets the enemy's focus.
-        Multiple heroes can engage the same MEL enemy.
+        For MEL: can add hero(es) to the enemy's melee_with list.
+        MEL is a relationship - an enemy can be in MEL WITH multiple heroes.
         """
         enemy = next((e for e in self.enemies if e.name == enemy_name), None)
         if not enemy:
@@ -483,22 +511,26 @@ class GameSession:
             return {"success": False, "error": f"Invalid range: {range_band}"}
 
         if enemy.rng == RangeBand.MEL:
-            # For MEL, engaged_hero is optional - it sets who the enemy focuses on
+            # For MEL, can add hero to the melee list
             if engaged_hero:
                 if engaged_hero not in [h.name for h in self.heroes if h.hp > 0]:
                     return {"success": False, "error": "Hero not alive"}
-                enemy.focus_target = engaged_hero
-                # Don't set engaged_target - allow multiple heroes to engage
-            else:
-                # No specific hero selected - enemy is in melee but no initial focus
-                # (will pick one on their turn)
-                pass
+                # ADD hero to melee list (don't replace)
+                if engaged_hero not in enemy.melee_with:
+                    enemy.melee_with.append(engaged_hero)
+                # Set as focus target if first one, otherwise keep existing focus
+                if not enemy.focus_target:
+                    enemy.focus_target = engaged_hero
+            # If no engaged_hero specified, this is "Open Melee" - don't change melee_with
         else:
+            # Not in melee - clear melee state
+            enemy.melee_with = []
+            enemy.focus_target = None
             enemy.engaged_target = None
 
         msg = f"{enemy.name} range set to {range_band}"
         if engaged_hero:
-            msg += f", focusing {engaged_hero}"
+            msg += f", adding {engaged_hero} to melee"
         self.log.append(msg)
 
         return {"success": True, "message": msg}

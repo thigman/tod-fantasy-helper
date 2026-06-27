@@ -80,6 +80,12 @@ def validate_enemy_targets(
             not in living_names
         ):
             enemy.engaged_target = None
+        
+        # Remove dead heroes from melee list
+        enemy.melee_with = [
+            h for h in enemy.melee_with
+            if h in living_names
+        ]
 
 
 def show_tactical_status(enemies):
@@ -355,6 +361,37 @@ def build_hero_reinforcement(
             ],
         )
 
+    if hero_type == "Ranger":
+
+        name = get_unique_name(
+            "Ranger",
+            unit_counters,
+        )
+
+        return Hero(
+            name=name,
+            hp=20,
+            max_hp=20,
+            arm=3,
+            str_=6,
+            dex=7,
+            ms=6,
+            rs=3,
+            spd=6,
+            intel=3,
+            weapon=Weapon(
+                "BOW",
+                "1d6",
+                1,
+            ),
+            secondary_weapon=Weapon(
+                "LSWD",
+                "1d8",
+                2,
+            ),
+            spells=[],
+        )
+
     return None
 
 
@@ -420,6 +457,68 @@ def build_enemy_reinforcement(
             secondary_weapon=Weapon(
                 "CLAW",
                 "1d4",
+                0,
+            ),
+            rng=RangeBand.OOM,
+        )
+
+    if enemy_type == "Skeleton Sword":
+
+        name = get_unique_name(
+            "Skeleton Sword",
+            unit_counters,
+        )
+
+        return Enemy(
+            name=name,
+            hp=12,
+            max_hp=12,
+            arm=1,
+            str_=4,
+            dex=4,
+            ms=5,
+            spd=5,
+            morale=0,
+            pack=0,
+            weapon=Weapon(
+                "AXE",
+                "1d8",
+                1,
+            ),
+            secondary_weapon=Weapon(
+                "CLAW",
+                "1d3",
+                0,
+            ),
+            rng=RangeBand.OOM,
+        )
+
+    if enemy_type == "Skeleton Bow":
+
+        name = get_unique_name(
+            "Skeleton Bow",
+            unit_counters,
+        )
+
+        return Enemy(
+            name=name,
+            hp=10,
+            max_hp=10,
+            arm=1,
+            str_=3,
+            dex=5,
+            ms=3,
+            spd=5,
+            morale=0,
+            pack=0,
+            weapon=Weapon(
+                "BOW",
+                "1d6",
+                1,
+            ),
+            secondary_weapon=Weapon(
+                "CLAW",
+                "1d3",
                 0,
             ),
             rng=RangeBand.OOM,
