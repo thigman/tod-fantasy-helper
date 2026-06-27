@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Helper - Combat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            color: #4a9eff;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .round-info {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            border: 1px solid #444;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 4px;
+        }
+
+        .section h2 {
+            color: #4a9eff;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            font-size: 1.2em;
+        }
+
+        .unit {
+            margin-bottom: 12px;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border-left: 3px solid #555;
+            border-radius: 2px;
+        }
+
+        .unit.hero {
+            border-left-color: #4a9eff;
+        }
+
+        .unit.hero:hover {
+            background-color: #323232;
+        }
+
+        .unit.enemy {
+            border-left-color: #ff6b6b;
+        }
+
+        .unit.enemy:hover {
+            background-color: #323232;
+        }
+
+        .unit-name {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .unit-stats {
+            font-size: 0.85em;
+            color: #aaa;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #4a9eff;
+            font-weight: bold;
+        }
+
+        .hp-bar {
+            margin-top: 6px;
+            height: 8px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .hp-fill {
+            height: 100%;
+            background-color: #4ade80;
+            transition: width 0.3s;
+        }
+
+        .hp-fill.damaged {
+            background-color: #f87171;
+        }
+
+        .tactical {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .dead {
+            opacity: 0.5;
+            text-decoration: line-through;
+            background-color: #1a1a1a !important;
+            border-left-color: #555 !important;
+        }
+
+        .log-section {
+            grid-column: 1 / -1;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            color: #aaa;
+            line-height: 1.4;
+        }
+
+        .log-entry.damage {
+            color: #f87171;
+        }
+
+        .log-entry.hit {
+            color: #4ade80;
+        }
+
+        .log-entry.miss {
+            color: #facc15;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px;
+            border: 1px solid #444;
+            background-color: #2a2a2a;
+            color: #4a9eff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #333;
+            border-color: #4a9eff;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: #666;
+        }
+
+        button.primary {
+            background-color: #4a9eff;
+            color: #1a1a1a;
+            border-color: #4a9eff;
+        }
+
+        button.primary:hover {
+            background-color: #3a8eef;
+        }
+
+        button.danger {
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+
+        button.danger:hover {
+            background-color: #2a1a1a;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #222;
+            border: 2px solid #4a9eff;
+            padding: 20px;
+            border-radius: 4px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: #4a9eff;
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .option-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .option-btn {
+            padding: 10px;
+            text-align: left;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .option-btn:hover {
+            background-color: #333;
+            border-color: #4a9eff;
+        }
+
+        .status-message {
+            padding: 10px;
+            background-color: #2a4a2a;
+            border-left: 3px solid #4ade80;
+            border-radius: 2px;
+            margin-bottom: 10px;
+            color: #4ade80;
+            font-size: 0.9em;
+        }
+
+        .status-message.error {
+            background-color: #4a2a2a;
+            border-left-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .start-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1a1a1a;
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .start-screen.show {
+            display: flex;
+        }
+
+        .start-content {
+            text-align: center;
+        }
+
+        .start-content h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+        }
+
+        .start-content p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            color: #888;
+        }
+
+        .battle-over {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .battle-over.show {
+            display: flex;
+        }
+
+        .battle-over-content {
+            background-color: #222;
+            border: 2px solid #4a9eff;
+            padding: 40px;
+            border-radius: 4px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .battle-over-content h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .battle-over-content p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: #888;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ Fantasy Helper</h1>
+            <div class="round-info" id="roundInfo">Click Start Game to begin</div>
+        </header>
+
+        <div class="actions" id="mainActions" style="display: none;">
+            <button class="primary" onclick="performHeroAttack()">Hero Attack</button>
+            <button onclick="showSetEnemyRange()">Set Enemy Range</button>
+            <button onclick="performEnemyTurn()">Enemy Turn</button>
+            <button onclick="showReinforcements()">Add Reinforcement</button>
+            <button onclick="nextRound()">Next Round</button>
+            <button class="danger" onclick="endBattle()">End Battle</button>
+        </div>
+
+        <div class="main-content" id="mainContent" style="display: none;">
+            <!-- Heroes -->
+            <div class="section">
+                <h2>Heroes</h2>
+                <div id="heroesList"></div>
+            </div>
+
+            <!-- Enemies -->
+            <div class="section">
+                <h2>Enemies</h2>
+                <div id="enemiesList"></div>
+            </div>
+
+            <!-- Combat Log -->
+            <div class="log-section">
+                <h2>Combat Log</h2>
+                <div class="log-content scrollbar-thin" id="combatLog"></div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="start-screen show" id="startScreen">
+            <div class="start-content">
+                <h1>⚔️ Fantasy Helper</h1>
+                <p>Combat Assistant for Tabletop Fantasy</p>
+                <button class="primary" onclick="startGame()" style="padding: 15px 30px; font-size: 1.1em;">
+                    Start Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Battle Over Modal -->
+        <div class="battle-over" id="battleOverScreen">
+            <div class="battle-over-content">
+                <h1 id="battleResult">Battle Over</h1>
+                <p id="battleStats"></p>
+                <button class="primary" onclick="startGame()">New Game</button>
+                <button onclick="document.location.reload()">Quit</button>
+            </div>
+        </div>
+
+        <!-- Hero Attack Modal -->
+        <div class="modal" id="heroAttackModal">
+            <div class="modal-content">
+                <h2>Select Hero</h2>
+                <div class="option-list" id="heroList"></div>
+                <button onclick="closeModal('heroAttackModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Enemy Selection Modal -->
+        <div class="modal" id="enemySelectModal">
+            <div class="modal-content">
+                <h2 id="enemyModalTitle">Select Enemy</h2>
+                <div class="option-list" id="enemyList"></div>
+                <button onclick="closeModal('enemySelectModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Spell Selection Modal -->
+        <div class="modal" id="spellSelectModal">
+            <div class="modal-content">
+                <h2>Select Spell</h2>
+                <div class="option-list">
+                    <button class="option-btn" onclick="castSpell(0)">Magic Missile (1d8)</button>
+                    <button class="option-btn" onclick="castSpell(1)">Fireball (2d8)</button>
+                </div>
+                <button onclick="closeModal('spellSelectModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Set Enemy Range Modal -->
+        <div class="modal" id="setRangeModal">
+            <div class="modal-content">
+                <h2>Set Enemy Range</h2>
+                <h3 style="color: #888; margin-top: 15px;">Select Enemy</h3>
+                <div class="option-list" id="rangeEnemyList"></div>
+                <button onclick="closeModal('setRangeModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Range Selection Modal -->
+        <div class="modal" id="rangeSelectionModal">
+            <div class="modal-content">
+                <h2>Select Range Band</h2>
+                <div class="option-list">
+                    <button class="option-btn" onclick="selectRange('MEL')">MEL - In Melee</button>
+                    <button class="option-btn" onclick="selectRange('OOM')">OOM - Out of Melee</button>
+                    <button class="option-btn" onclick="selectRange('OOB')">OOB - Out of Battle</button>
+                </div>
+                <button onclick="closeModal('rangeSelectionModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Engaged Hero Selection Modal -->
+        <div class="modal" id="engagedHeroModal">
+            <div class="modal-content">
+                <h2>Select Engaged Hero (MEL)</h2>
+                <div class="option-list" id="engagedHeroList"></div>
+                <button onclick="closeModal('engagedHeroModal')">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Reinforcements Modal -->
+        <div class="modal" id="reinforcementsModal">
+            <div class="modal-content">
+                <h2>Add Reinforcement</h2>
+                <h3 style="color: #888; margin-top: 15px;">Add Hero</h3>
+                <div class="option-list">
+                    <button class="option-btn" onclick="addReinforcement('Fighter', true)">Fighter</button>
+                    <button class="option-btn" onclick="addReinforcement('Wizard', true)">Wizard</button>
+                </div>
+                <h3 style="color: #888; margin-top: 15px;">Add Enemy</h3>
+                <div class="option-list">
+                    <button class="option-btn" onclick="addReinforcement('Orc Warrior', false)">Orc Warrior</button>
+                    <button class="option-btn" onclick="addReinforcement('Orc Archer', false)">Orc Archer</button>
+                </div>
+                <button onclick="closeModal('reinforcementsModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

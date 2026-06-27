@@ -160,7 +160,7 @@ Each enemy has:
 
 ---
 
-# Range Bands
+# Ranges
 
 Range is represented by `models.enums.RangeBand`.
 
@@ -249,10 +249,12 @@ Displayed above the battlefield.
 
 Status is derived from:
 
-- enemy range band
+- enemy range
 - engaged target
 - focus target
 - morale state
+
+The combat action menu now supports reinforcements, allowing new heroes or enemies to join mid-battle.
 
 Text is generated dynamically and not stored directly on the enemy.
 

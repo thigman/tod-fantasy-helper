@@ -41,7 +41,7 @@ Future content should be declared in JSON files under `data/`.
    - `morale` and `pack` for enemies
    - `intel` for spellcasters
    - `weapon` reference
-   - `rng` initial range band for enemies
+   - `rng` initial range value for enemies
 
 2. Add loader utilities.
 

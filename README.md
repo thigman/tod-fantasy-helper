@@ -47,7 +47,7 @@ Combat always shows the battlefield and tactical status before action selection.
 
 `engine/combat.show_tactical_status()` calculates status from:
 
-- enemy range band
+- enemy range
 - engaged hero
 - focus target
 - morale state

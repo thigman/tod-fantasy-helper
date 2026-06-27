@@ -12,7 +12,10 @@ from engine.ai import (
 )
 from engine.morale import update_morale
 
+from models.enemy import Enemy
+from models.hero import Hero
 from models.enums import RangeBand
+from models.weapon import Weapon
 
 import random
 
@@ -264,6 +267,215 @@ def set_enemy_range(
     else:
 
         enemy.engaged_target = None
+
+
+def get_unique_name(
+    base,
+    existing_names,
+):
+
+    if base not in existing_names:
+        return base
+
+    suffix = 2
+    while True:
+        candidate = f"{base} #{suffix}"
+        if candidate not in existing_names:
+            return candidate
+        suffix += 1
+
+
+def build_hero_reinforcement(
+    hero_type,
+    existing_names,
+):
+
+    if hero_type == "Fighter":
+
+        name = get_unique_name(
+            "Fighter",
+            existing_names,
+        )
+
+        return Hero(
+            name=name,
+            hp=25,
+            max_hp=25,
+            arm=4,
+            str_=7,
+            dex=5,
+            ms=7,
+            rs=1,
+            intel=2,
+            weapon=Weapon(
+                "LSWD",
+                "1d8",
+                2,
+            ),
+        )
+
+    if hero_type == "Wizard":
+
+        name = get_unique_name(
+            "Wizard",
+            existing_names,
+        )
+
+        return Hero(
+            name=name,
+            hp=12,
+            max_hp=12,
+            arm=1,
+            str_=2,
+            dex=4,
+            ms=2,
+            rs=2,
+            intel=8,
+            weapon=Weapon(
+                "MM",
+                "1d8",
+                2,
+            ),
+        )
+
+    return None
+
+
+def build_enemy_reinforcement(
+    enemy_type,
+    existing_names,
+):
+
+    if enemy_type == "Orc Warrior":
+
+        name = get_unique_name(
+            "Orc Warrior",
+            existing_names,
+        )
+
+        return Enemy(
+            name=name,
+            hp=16,
+            max_hp=16,
+            arm=3,
+            str_=6,
+            dex=4,
+            ms=6,
+            morale=5,
+            pack=7,
+            weapon=Weapon(
+                "AXE",
+                "1d8",
+                2,
+            ),
+            rng=RangeBand.OOM,
+        )
+
+    if enemy_type == "Orc Archer":
+
+        name = get_unique_name(
+            "Orc Archer",
+            existing_names,
+        )
+
+        return Enemy(
+            name=name,
+            hp=12,
+            max_hp=12,
+            arm=1,
+            str_=4,
+            dex=5,
+            ms=4,
+            morale=5,
+            pack=5,
+            weapon=Weapon(
+                "BOW",
+                "1d6",
+                1,
+            ),
+            rng=RangeBand.OOM,
+        )
+
+    return None
+
+
+def add_reinforcements(
+    heroes,
+    enemies,
+):
+
+    choice = menu(
+        "Reinforcements",
+        [
+            "Add Hero Reinforcement",
+            "Add Enemy Reinforcement",
+            "Cancel",
+        ],
+    )
+
+    if choice == 0:
+
+        hero_names = {
+            hero.name
+            for hero in heroes
+        }
+
+        hero_type = [
+            "Fighter",
+            "Wizard",
+        ][
+            menu(
+                "Hero Type",
+                [
+                    "Fighter",
+                    "Wizard",
+                ],
+            )
+        ]
+
+        hero = build_hero_reinforcement(
+            hero_type,
+            hero_names,
+        )
+
+        if hero is not None:
+            heroes.append(hero)
+            print(
+                f"{hero.name} joins the battle."
+            )
+
+    elif choice == 1:
+        enemy_names = {
+            enemy.name
+            for enemy in enemies
+        }
+
+        enemy_type = [
+            "Orc Warrior",
+            "Orc Archer",
+        ][
+            menu(
+                "Enemy Type",
+                [
+                    "Orc Warrior",
+                    "Orc Archer",
+                ],
+            )
+        ]
+
+        enemy = build_enemy_reinforcement(
+            enemy_type,
+            enemy_names,
+        )
+
+        if enemy is not None:
+            enemies.append(enemy)
+            print(
+                f"{enemy.name} arrives as reinforcement."
+            )
+
+    else:
+        print("No reinforcements added.")
 
 
 def hero_attack(
@@ -757,6 +969,7 @@ def run_combat(
                 "Attack",
                 "Set Enemy Range",
                 "Enemy Turn",
+                "Reinforcements",
                 "Combat Log",
                 "Next Round",
                 "Quit",
@@ -823,13 +1036,22 @@ def run_combat(
 
         elif choice == 3:
 
+            add_reinforcements(
+                heroes,
+                enemies,
+            )
+
+            input("\nPress Enter...")
+
+        elif choice == 4:
+
             show_combat_log(
                 log,
             )
 
             input("\nPress Enter...")
 
-        elif choice == 4:
+        elif choice == 5:
 
             round_num += 1
 
