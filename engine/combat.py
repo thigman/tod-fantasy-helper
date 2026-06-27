@@ -306,11 +306,17 @@ def build_hero_reinforcement(
             dex=5,
             ms=7,
             rs=1,
+            spd=6,
             intel=2,
             weapon=Weapon(
                 "LSWD",
                 "1d8",
                 2,
+            ),
+            secondary_weapon=Weapon(
+                "BOW",
+                "1d6",
+                1,
             ),
         )
 
@@ -330,11 +336,17 @@ def build_hero_reinforcement(
             dex=4,
             ms=2,
             rs=2,
+            spd=6,
             intel=8,
             weapon=Weapon(
                 "MM",
                 "1d8",
                 2,
+            ),
+            secondary_weapon=Weapon(
+                "DAG",
+                "1d4",
+                0,
             ),
         )
 
@@ -361,12 +373,18 @@ def build_enemy_reinforcement(
             str_=6,
             dex=4,
             ms=6,
+            spd=6,
             morale=5,
             pack=7,
             weapon=Weapon(
                 "AXE",
                 "1d8",
                 2,
+            ),
+            secondary_weapon=Weapon(
+                "CLAW",
+                "1d4",
+                0,
             ),
             rng=RangeBand.OOM,
         )
@@ -386,12 +404,18 @@ def build_enemy_reinforcement(
             str_=4,
             dex=5,
             ms=4,
+            spd=6,
             morale=5,
             pack=5,
             weapon=Weapon(
                 "BOW",
                 "1d6",
                 1,
+            ),
+            secondary_weapon=Weapon(
+                "CLAW",
+                "1d4",
+                0,
             ),
             rng=RangeBand.OOM,
         )

@@ -13,10 +13,12 @@ class Enemy:
     str_: int
     dex: int
     ms: int
+    spd: int
     morale: int
     pack: int
     weapon: Weapon
-    rng: RangeBand
+    secondary_weapon: Weapon | None = None
+    rng: RangeBand = RangeBand.OOM
 
     # AI state
     focus_target: str | None = None

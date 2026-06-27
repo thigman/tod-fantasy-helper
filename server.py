@@ -58,6 +58,13 @@ async def new_encounter(request: NewEncounterRequest):
 
     # Build default hero party
     fighter_sword = Weapon("LSWD", "1d8", 2)
+    fighter_bow = Weapon("BOW", "1d6", 1)
+    
+    wizard_mm = Weapon("MM", "1d8", 2)
+    wizard_dagger = Weapon("DAG", "1d4", 0)
+    
+    claw = Weapon("CLAW", "1d4", 0)
+    
     heroes = [
         Hero(
             name="Fighter",
@@ -68,8 +75,10 @@ async def new_encounter(request: NewEncounterRequest):
             dex=5,
             ms=7,
             rs=1,
+            spd=6,
             intel=2,
             weapon=fighter_sword,
+            secondary_weapon=fighter_bow,
         ),
         Hero(
             name="Wizard",
@@ -80,8 +89,10 @@ async def new_encounter(request: NewEncounterRequest):
             dex=4,
             ms=2,
             rs=2,
+            spd=6,
             intel=8,
-            weapon=Weapon("MM", "1d8", 2),
+            weapon=wizard_mm,
+            secondary_weapon=wizard_dagger,
         ),
     ]
 
@@ -95,9 +106,11 @@ async def new_encounter(request: NewEncounterRequest):
             str_=6,
             dex=4,
             ms=6,
+            spd=6,
             morale=5,
             pack=7,
             weapon=Weapon("AXE", "1d8", 2),
+            secondary_weapon=claw,
             rng=RangeBand.OOM,
         ),
         Enemy(
@@ -108,9 +121,11 @@ async def new_encounter(request: NewEncounterRequest):
             str_=4,
             dex=5,
             ms=4,
+            spd=6,
             morale=5,
             pack=5,
             weapon=Weapon("BOW", "1d6", 1),
+            secondary_weapon=claw,
             rng=RangeBand.OOM,
         ),
     ]

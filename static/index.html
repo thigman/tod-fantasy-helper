@@ -141,6 +141,15 @@
             margin-top: 4px;
         }
 
+        .unit.acted {
+            opacity: 0.6;
+            background-color: #1a1a1a !important;
+        }
+
+        .unit.acted .unit-name {
+            color: #888;
+        }
+
         .dead {
             opacity: 0.5;
             text-decoration: line-through;
@@ -450,8 +459,19 @@
             <div class="battle-over-content">
                 <h1 id="battleResult">Battle Over</h1>
                 <p id="battleStats"></p>
-                <button class="primary" onclick="startGame()">New Game</button>
-                <button onclick="document.location.reload()">Quit</button>
+                
+                <div style="margin-top: 30px; text-align: left;">
+                    <h3 style="color: #4a9eff; margin-bottom: 10px;">Final Status</h3>
+                    <div id="finalStatus" style="background-color: #1a1a1a; padding: 15px; border-radius: 4px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; font-size: 0.85em;"></div>
+                    
+                    <h3 style="color: #4a9eff; margin-bottom: 10px;">Combat Log</h3>
+                    <div id="endBattleLog" style="background-color: #1a1a1a; padding: 15px; border-radius: 4px; max-height: 300px; overflow-y: auto; font-size: 0.8em; line-height: 1.4;"></div>
+                </div>
+                
+                <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="primary" onclick="startGame()">New Game</button>
+                    <button onclick="document.location.reload()">Quit</button>
+                </div>
             </div>
         </div>
 

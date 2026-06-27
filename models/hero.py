@@ -17,9 +17,11 @@ class Hero:
 
     ms: int
     rs: int
+    spd: int
 
     intel: int
 
     weapon: Weapon
+    secondary_weapon: Weapon | None = None
 
     damage_done: int = 0

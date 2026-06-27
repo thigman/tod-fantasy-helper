@@ -98,9 +98,21 @@ function createUnitElement(unit, type) {
         div.classList.add("dead");
     }
 
+    // Check if unit has acted this turn
+    const hasActed =
+        (type === "hero" && gameState.acted.includes(unit.name)) ||
+        (type === "enemy" && gameState.enemy_acted.includes(unit.name));
+
+    if (hasActed) {
+        div.classList.add("acted");
+    }
+
     const nameDiv = document.createElement("div");
     nameDiv.className = "unit-name";
     nameDiv.textContent = unit.name;
+    if (hasActed) {
+        nameDiv.textContent += " ✓ ACTED";
+    }
     div.appendChild(nameDiv);
 
     const statsDiv = document.createElement("div");
@@ -129,9 +141,19 @@ function createUnitElement(unit, type) {
             <span class="stat-value">${unit.ms}</span>
         </div>
         <div class="stat">
+            <span class="stat-label">SPD:</span>
+            <span class="stat-value">${unit.spd}</span>
+        </div>
+        <div class="stat">
             <span class="stat-label">WPN:</span>
             <span class="stat-value">${unit.weapon}</span>
         </div>
+        ${unit.secondary_weapon ? `
+        <div class="stat">
+            <span class="stat-label">WPN2:</span>
+            <span class="stat-value">${unit.secondary_weapon}</span>
+        </div>
+        ` : ''}
     `;
     div.appendChild(statsDiv);
 
@@ -196,9 +218,68 @@ function showBattleOver() {
     screen.classList.add("show");
 
     document.getElementById("battleResult").textContent = gameState.battle_result;
+    document.getElementById("battleStats").textContent = `Rounds: ${gameState.round}`;
 
-    const stats = `Rounds: ${gameState.round}`;
-    document.getElementById("battleStats").textContent = stats;
+    // Show final status
+    const finalStatus = document.getElementById("finalStatus");
+    finalStatus.innerHTML = "";
+
+    // Heroes
+    const heroHeader = document.createElement("div");
+    heroHeader.style.fontWeight = "bold";
+    heroHeader.style.color = "#4a9eff";
+    heroHeader.style.marginBottom = "8px";
+    heroHeader.textContent = "Heroes:";
+    finalStatus.appendChild(heroHeader);
+
+    gameState.heroes.forEach((hero) => {
+        const status = document.createElement("div");
+        status.style.marginBottom = "4px";
+        status.style.color = hero.alive ? "#4ade80" : "#ff6b6b";
+        status.textContent = `  ${hero.name}: HP ${hero.hp}/${hero.max_hp} | Dmg: ${hero.damage_done}`;
+        finalStatus.appendChild(status);
+    });
+
+    const enemyHeader = document.createElement("div");
+    enemyHeader.style.fontWeight = "bold";
+    enemyHeader.style.color = "#ff6b6b";
+    enemyHeader.style.marginTop = "12px";
+    enemyHeader.style.marginBottom = "8px";
+    enemyHeader.textContent = "Enemies:";
+    finalStatus.appendChild(enemyHeader);
+
+    gameState.enemies.forEach((enemy) => {
+        const status = document.createElement("div");
+        status.style.marginBottom = "4px";
+        status.style.color = enemy.alive ? "#4ade80" : "#888";
+        status.textContent = `  ${enemy.name}: HP ${enemy.hp}/${enemy.max_hp}`;
+        finalStatus.appendChild(status);
+    });
+
+    // Show combat log
+    const logDiv = document.getElementById("endBattleLog");
+    logDiv.innerHTML = "";
+
+    gameState.log.forEach((entry) => {
+        const entryDiv = document.createElement("div");
+        entryDiv.style.marginBottom = "3px";
+
+        if (entry.includes("hits")) {
+            entryDiv.style.color = "#4ade80";
+        } else if (entry.includes("misses")) {
+            entryDiv.style.color = "#facc15";
+        } else if (entry.includes("defeated") || entry.includes("VICTORY")) {
+            entryDiv.style.color = "#ff6b6b";
+        } else {
+            entryDiv.style.color = "#aaa";
+        }
+
+        entryDiv.textContent = entry;
+        logDiv.appendChild(entryDiv);
+    });
+
+    // Scroll to bottom
+    logDiv.scrollTop = logDiv.scrollHeight;
 }
 
 // Modal functions

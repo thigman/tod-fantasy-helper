@@ -23,8 +23,14 @@ def main():
             dex=5,
             ms=7,
             rs=1,
+            spd=6,
             intel=2,
             weapon=fighter_sword,
+            secondary_weapon=Weapon(
+                "BOW",
+                "1d6",
+                1,
+            ),
         ),
         Hero(
             name="Wizard",
@@ -35,11 +41,17 @@ def main():
             dex=4,
             ms=2,
             rs=2,
+            spd=6,
             intel=8,
             weapon=Weapon(
                 "MM",
                 "1d8",
                 2,
+            ),
+            secondary_weapon=Weapon(
+                "DAG",
+                "1d4",
+                0,
             ),
         ),
     ]
