@@ -494,7 +494,7 @@ function selectHeroForAttack(hero) {
     if (hero.weapon.name === "MM") {
         showSpellSelection();
     } else {
-        showEnemySelection("for attack");
+        showEnemySelection("melee");
     }
 }
 
@@ -502,21 +502,47 @@ function showSpellSelection() {
     document.getElementById("spellSelectModal").classList.add("show");
 }
 
-function showEnemySelection(context = "") {
+function showEnemySelection(attackType = "melee") {
     const enemyList = document.getElementById("enemyList");
     enemyList.innerHTML = "";
 
-    const availableEnemies = gameState.enemies.filter((e) => e.alive);
+    let availableEnemies = gameState.enemies.filter((e) => e.alive);
+    
+    // Filter by range requirement
+    if (attackType === "melee") {
+        availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
+    } else if (attackType === "spell") {
+        availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
+    }
 
-    availableEnemies.forEach((enemy) => {
-        const btn = document.createElement("button");
-        btn.className = "option-btn";
-        btn.textContent = `${enemy.name} (HP: ${enemy.hp}/${enemy.max_hp}, ${enemy.rng})`;
-        btn.onclick = () => selectEnemyForAttack(enemy);
-        enemyList.appendChild(btn);
-    });
+    if (availableEnemies.length === 0) {
+        const msg = document.createElement("div");
+        msg.style.padding = "10px";
+        msg.style.color = "#ff6b6b";
+        if (attackType === "melee") {
+            msg.textContent = "No enemies in melee range (MEL)";
+        } else if (attackType === "spell") {
+            msg.textContent = "No enemies out of melee (OOM)";
+        }
+        enemyList.appendChild(msg);
+    } else {
+        availableEnemies.forEach((enemy) => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.textContent = `${enemy.name} (HP: ${enemy.hp}/${enemy.max_hp}, ${enemy.rng})`;
+            btn.onclick = () => selectEnemyForAttack(enemy);
+            enemyList.appendChild(btn);
+        });
+    }
 
-    document.getElementById("enemyModalTitle").textContent = `Select Enemy ${context}`;
+    let title = "Select Enemy";
+    if (attackType === "melee") {
+        title += " (MEL Range)";
+    } else if (attackType === "spell") {
+        title += " (OOM Range)";
+    }
+    
+    document.getElementById("enemyModalTitle").textContent = title;
     document.getElementById("enemySelectModal").classList.add("show");
 }
 
@@ -539,7 +565,7 @@ async function castSpell(spellIndex) {
     } else {
         // Magic Missile (index 0) - single target
         selectedEnemyForAttack = null;
-        showEnemySelection("for spell");
+        showEnemySelection("spell");
     }
 }
 
