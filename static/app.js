@@ -344,11 +344,18 @@ function createUnitElement(unit, type) {
         const tacticalDiv = document.createElement("div");
         tacticalDiv.className = "tactical";
         let tacticalInfo = `${unit.rng}`;
-        if (unit.engaged_target) {
-            tacticalInfo += ` | Engaging ${unit.engaged_target}`;
+        
+        if (unit.rng === "MEL") {
+            // Show all heroes that can engage in melee
+            if (unit.engaging_heroes && unit.engaging_heroes.length > 0) {
+                tacticalInfo += ` | Engaging: ${unit.engaging_heroes.join(", ")}`;
+            } else {
+                tacticalInfo += ` | In Melee`;
+            }
         } else if (unit.focus_target) {
             tacticalInfo += ` | Focusing ${unit.focus_target}`;
         }
+        
         if (unit.morale_state !== "STEADY") {
             tacticalInfo += ` | ${unit.morale_state}`;
         }
@@ -510,24 +517,21 @@ function showEnemySelection(attackType = "melee") {
     
     // Filter by range requirement
     if (attackType === "melee") {
-        availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
-        
-        // Heroes can ONLY attack enemies they're engaged with
-        const heroIsEngaged = gameState.enemies.some((e) => e.engaged_target === selectedHeroForAttack.name);
-        if (!heroIsEngaged) {
-            // Hero not engaged - no melee attacks allowed
+        // Hero can do melee attacks if there are any MEL enemies
+        const anythingInMEL = gameState.enemies.some((e) => e.rng === "MEL");
+        if (!anythingInMEL) {
             const msg = document.createElement("div");
             msg.style.padding = "10px";
             msg.style.color = "#ff6b6b";
-            msg.textContent = `${selectedHeroForAttack.name} is not in melee - cannot attack`;
+            msg.textContent = `No enemies in melee range - cannot attack`;
             enemyList.appendChild(msg);
             document.getElementById("enemyModalTitle").textContent = "Select Enemy (MEL Range)";
             document.getElementById("enemySelectModal").classList.add("show");
             return;
         }
         
-        // Hero IS engaged - only allow attacking engaged enemies
-        availableEnemies = availableEnemies.filter((e) => e.engaged_target === selectedHeroForAttack.name);
+        // Can attack any MEL enemy (multiple heroes can pile on)
+        availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
     } else if (attackType === "spell") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
     }
@@ -537,7 +541,7 @@ function showEnemySelection(attackType = "melee") {
         msg.style.padding = "10px";
         msg.style.color = "#ff6b6b";
         if (attackType === "melee") {
-            msg.textContent = `Only enemies engaged with ${selectedHeroForAttack.name} can be attacked`;
+            msg.textContent = "No MEL enemies available to attack";
         } else if (attackType === "spell") {
             msg.textContent = "No enemies out of melee (OOM)";
         }
@@ -811,6 +815,12 @@ function showEngagedHeroSelection() {
 
     const heroes = gameState.heroes.filter((h) => h.alive);
 
+    const label = document.createElement("div");
+    label.style.marginBottom = "10px";
+    label.style.color = "#4a9eff";
+    label.textContent = "Select a focus target (optional) or open melee:";
+    engagedHeroList.appendChild(label);
+
     heroes.forEach((hero) => {
         const btn = document.createElement("button");
         btn.className = "option-btn";
@@ -819,12 +829,25 @@ function showEngagedHeroSelection() {
         engagedHeroList.appendChild(btn);
     });
 
+    // Add "Open Melee" button - allows multiple heroes to engage
+    const divider = document.createElement("div");
+    divider.style.borderTop = "1px solid #4a9eff";
+    divider.style.margin = "10px 0";
+    engagedHeroList.appendChild(divider);
+
+    const openMeleeBtn = document.createElement("button");
+    openMeleeBtn.className = "option-btn";
+    openMeleeBtn.style.backgroundColor = "#2a5a3a";
+    openMeleeBtn.textContent = "Open Melee (no focus)";
+    openMeleeBtn.onclick = () => selectEngagedHero(null);
+    engagedHeroList.appendChild(openMeleeBtn);
+
     document.getElementById("engagedHeroModal").classList.add("show");
 }
 
 async function selectEngagedHero(hero) {
     closeModal("engagedHeroModal");
-    await applyRangeChange(hero.name);
+    await applyRangeChange(hero ? hero.name : null);
 }
 
 async function applyRangeChange(engagedHero) {

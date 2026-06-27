@@ -37,9 +37,34 @@ class GameSession:
         self.battle_over = False
         self.battle_result = ""
         self.starting_enemy_count = sum(1 for enemy in enemies if enemy.hp > 0)
+        
+        # Track highest number used for each unit type (for reinforcements)
+        self.unit_counters = self._initialize_unit_counters()
 
         assign_initial_focus(self.enemies, self.heroes)
         update_morale(self.enemies, self.starting_enemy_count)
+    
+    def _initialize_unit_counters(self):
+        """Initialize unit name counters from existing heroes and enemies."""
+        counters = {}
+        
+        for hero in self.heroes:
+            base_name = hero.name.split(" #")[0]  # Extract base name
+            if " #" in hero.name:
+                number = int(hero.name.split(" #")[1])
+                counters[base_name] = max(counters.get(base_name, 0), number)
+            else:
+                counters[base_name] = 1  # First instance should have been #1
+        
+        for enemy in self.enemies:
+            base_name = enemy.name.split(" #")[0]  # Extract base name
+            if " #" in enemy.name:
+                number = int(enemy.name.split(" #")[1])
+                counters[base_name] = max(counters.get(base_name, 0), number)
+            else:
+                counters[base_name] = 1  # First instance should have been #1
+        
+        return counters
 
     def get_state(self):
         """Get current game state as serializable dict."""
@@ -94,6 +119,11 @@ class GameSession:
 
     def _serialize_enemy(self, enemy):
         """Convert Enemy to dict."""
+        # Get all heroes that can attack this enemy
+        engaging_heroes = []
+        if enemy.rng == "MEL":
+            engaging_heroes = [h.name for h in self.heroes if h.hp > 0]
+        
         return {
             "name": enemy.name,
             "hp": enemy.hp,
@@ -127,6 +157,7 @@ class GameSession:
             "rng": enemy.rng.name,
             "focus_target": enemy.focus_target,
             "engaged_target": enemy.engaged_target,
+            "engaging_heroes": engaging_heroes,
             "morale_state": enemy.morale_state,
             "alive": enemy.hp > 0,
         }
@@ -359,16 +390,30 @@ class GameSession:
                         self.enemy_acted.add(enemy.name)
                         continue
 
-            # Melee enemies (AXE) in MEL range can ONLY attack their engaged target
+            # Melee enemies (AXE) in MEL range can attack any MEL hero
+            # Multiple heroes can engage one enemy, so no single-target lock
             if enemy.weapon.name == "AXE" and enemy.rng == RangeBand.MEL:
-                if enemy.engaged_target:
-                    # Must attack engaged target, cannot switch
-                    if current_target.name != enemy.engaged_target:
-                        msg = f"{enemy.name} is locked in melee with {enemy.engaged_target}, cannot attack {current_target.name}"
+                # If current target is OOM, find a MEL target
+                hero_is_engaged = any(
+                    e.engaged_target == current_target.name 
+                    for e in self.enemies 
+                    if e.name != enemy.name
+                )
+                if not hero_is_engaged:
+                    # Target is OOM, find any MEL hero
+                    mel_targets = [
+                        h for h in heroes_alive
+                        if any(e.engaged_target == h.name for e in self.enemies if e.name != enemy.name)
+                    ]
+                    if mel_targets:
+                        current_target = mel_targets[0]
+                        enemy.focus_target = current_target.name
+                        enemy.focus_rounds = 2
+                    else:
+                        msg = f"{enemy.name} cannot find valid melee targets"
                         self.log.append(msg)
                         self.enemy_acted.add(enemy.name)
                         continue
-                    # current_target is correct (the engaged target)
 
             # Check weapon/range constraints
             if enemy.weapon.name == "AXE" and enemy.rng == RangeBand.OOM:
@@ -423,7 +468,11 @@ class GameSession:
         return {"success": True, "message": "Enemy turn complete"}
 
     def set_enemy_range(self, enemy_name, range_band, engaged_hero=None):
-        """Set enemy's range band."""
+        """Set enemy's range band.
+        
+        For MEL: engaged_hero is optional. If provided, sets the enemy's focus.
+        Multiple heroes can engage the same MEL enemy.
+        """
         enemy = next((e for e in self.enemies if e.name == enemy_name), None)
         if not enemy:
             return {"success": False, "error": "Enemy not found"}
@@ -434,38 +483,47 @@ class GameSession:
             return {"success": False, "error": f"Invalid range: {range_band}"}
 
         if enemy.rng == RangeBand.MEL:
+            # For MEL, engaged_hero is optional - it sets who the enemy focuses on
             if engaged_hero:
                 if engaged_hero not in [h.name for h in self.heroes if h.hp > 0]:
                     return {"success": False, "error": "Hero not alive"}
-                enemy.engaged_target = engaged_hero
                 enemy.focus_target = engaged_hero
+                # Don't set engaged_target - allow multiple heroes to engage
             else:
-                return {"success": False, "error": "Must specify engaged hero for MEL"}
+                # No specific hero selected - enemy is in melee but no initial focus
+                # (will pick one on their turn)
+                pass
         else:
             enemy.engaged_target = None
 
         msg = f"{enemy.name} range set to {range_band}"
         if engaged_hero:
-            msg += f", engaged with {engaged_hero}"
+            msg += f", focusing {engaged_hero}"
         self.log.append(msg)
 
         return {"success": True, "message": msg}
 
     def add_reinforcement(self, unit_type, is_hero=True):
         """Add a reinforcement unit."""
-        existing_names = {u.name for u in (self.heroes if is_hero else self.enemies)}
-
         if is_hero:
-            unit = build_hero_reinforcement(unit_type, existing_names)
+            unit = build_hero_reinforcement(unit_type, self.unit_counters)
             if unit:
                 self.heroes.append(unit)
+                # Update counter
+                base_name = unit.name.split(" #")[0]
+                number = int(unit.name.split(" #")[1])
+                self.unit_counters[base_name] = max(self.unit_counters.get(base_name, 0), number)
                 msg = f"{unit.name} joins the battle."
                 self.log.append(msg)
                 return {"success": True, "message": msg}
         else:
-            unit = build_enemy_reinforcement(unit_type, existing_names)
+            unit = build_enemy_reinforcement(unit_type, self.unit_counters)
             if unit:
                 self.enemies.append(unit)
+                # Update counter
+                base_name = unit.name.split(" #")[0]
+                number = int(unit.name.split(" #")[1])
+                self.unit_counters[base_name] = max(self.unit_counters.get(base_name, 0), number)
                 msg = f"{unit.name} arrives as reinforcement."
                 self.log.append(msg)
                 return {"success": True, "message": msg}

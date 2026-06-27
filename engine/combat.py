@@ -272,30 +272,33 @@ def set_enemy_range(
 
 def get_unique_name(
     base,
-    existing_names,
+    unit_counters,
 ):
-
-    if base not in existing_names:
-        return base
-
-    suffix = 2
-    while True:
-        candidate = f"{base} #{suffix}"
-        if candidate not in existing_names:
-            return candidate
-        suffix += 1
+    """Generate next unique name for a unit type.
+    
+    Args:
+        base: The base unit name (e.g., "Fighter", "Orc Warrior")
+        unit_counters: Dict tracking highest number used for each unit type
+    
+    Returns:
+        Name with number: "Fighter #1", "Fighter #2", etc.
+    """
+    current_max = unit_counters.get(base, 0)
+    next_number = current_max + 1
+    unit_counters[base] = next_number
+    return f"{base} #{next_number}"
 
 
 def build_hero_reinforcement(
     hero_type,
-    existing_names,
+    unit_counters,
 ):
 
     if hero_type == "Fighter":
 
         name = get_unique_name(
             "Fighter",
-            existing_names,
+            unit_counters,
         )
 
         return Hero(
@@ -322,7 +325,7 @@ def build_hero_reinforcement(
 
         name = get_unique_name(
             "Wizard",
-            existing_names,
+            unit_counters,
         )
 
         return Hero(
@@ -357,14 +360,14 @@ def build_hero_reinforcement(
 
 def build_enemy_reinforcement(
     enemy_type,
-    existing_names,
+    unit_counters,
 ):
 
     if enemy_type == "Orc Warrior":
 
         name = get_unique_name(
             "Orc Warrior",
-            existing_names,
+            unit_counters,
         )
 
         return Enemy(
@@ -395,7 +398,7 @@ def build_enemy_reinforcement(
 
         name = get_unique_name(
             "Orc Archer",
-            existing_names,
+            unit_counters,
         )
 
         return Enemy(

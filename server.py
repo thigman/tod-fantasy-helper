@@ -19,7 +19,7 @@ from data_loader import load_heroes_from_json, load_enemies_from_json
 
 import os
 
-VERSION = "0.1.6"
+VERSION = "0.1.9"
 
 app = FastAPI()
 
@@ -104,8 +104,8 @@ async def encounter_custom(request: EncounterCustomRequest):
                 for i in range(quantity):
                     # Deep copy the template to create a new instance
                     hero_copy = copy.deepcopy(template)
-                    if quantity > 1:
-                        hero_copy.name = f"{template.name} #{i+1}"
+                    # Always add number (#1, #2, #3, etc.)
+                    hero_copy.name = f"{template.name} #{i+1}"
                     selected_heroes.append(hero_copy)
     
     selected_enemies = []
@@ -116,8 +116,8 @@ async def encounter_custom(request: EncounterCustomRequest):
                 for i in range(quantity):
                     # Deep copy the template to create a new instance
                     enemy_copy = copy.deepcopy(template)
-                    if quantity > 1:
-                        enemy_copy.name = f"{template.name} #{i+1}"
+                    # Always add number (#1, #2, #3, etc.)
+                    enemy_copy.name = f"{template.name} #{i+1}"
                     selected_enemies.append(enemy_copy)
     
     if not selected_heroes or not selected_enemies:
@@ -142,7 +142,7 @@ async def new_encounter(request: NewEncounterRequest):
     
     heroes = [
         Hero(
-            name="Fighter",
+            name="Fighter #1",
             hp=25,
             max_hp=25,
             arm=4,
@@ -157,7 +157,7 @@ async def new_encounter(request: NewEncounterRequest):
             spells=[],
         ),
         Hero(
-            name="Wizard",
+            name="Wizard #1",
             hp=12,
             max_hp=12,
             arm=1,
@@ -179,7 +179,7 @@ async def new_encounter(request: NewEncounterRequest):
     # Build encounter (simulates menu choices - default to Orc Warrior + Archer)
     enemies = [
         Enemy(
-            name="Orc Warrior",
+            name="Orc Warrior #1",
             hp=16,
             max_hp=16,
             arm=3,
@@ -195,7 +195,7 @@ async def new_encounter(request: NewEncounterRequest):
             rng=RangeBand.OOM,
         ),
         Enemy(
-            name="Orc Archer",
+            name="Orc Archer #1",
             hp=12,
             max_hp=12,
             arm=1,
