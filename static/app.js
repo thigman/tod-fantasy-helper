@@ -512,11 +512,22 @@ function showEnemySelection(attackType = "melee") {
     if (attackType === "melee") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
         
-        // If the hero is engaged with anyone, only allow attacking engaged enemies
+        // Heroes can ONLY attack enemies they're engaged with
         const heroIsEngaged = gameState.enemies.some((e) => e.engaged_target === selectedHeroForAttack.name);
-        if (heroIsEngaged) {
-            availableEnemies = availableEnemies.filter((e) => e.engaged_target === selectedHeroForAttack.name);
+        if (!heroIsEngaged) {
+            // Hero not engaged - no melee attacks allowed
+            const msg = document.createElement("div");
+            msg.style.padding = "10px";
+            msg.style.color = "#ff6b6b";
+            msg.textContent = `${selectedHeroForAttack.name} is not in melee - cannot attack`;
+            enemyList.appendChild(msg);
+            document.getElementById("enemyModalTitle").textContent = "Select Enemy (MEL Range)";
+            document.getElementById("enemySelectModal").classList.add("show");
+            return;
         }
+        
+        // Hero IS engaged - only allow attacking engaged enemies
+        availableEnemies = availableEnemies.filter((e) => e.engaged_target === selectedHeroForAttack.name);
     } else if (attackType === "spell") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
     }
@@ -526,12 +537,7 @@ function showEnemySelection(attackType = "melee") {
         msg.style.padding = "10px";
         msg.style.color = "#ff6b6b";
         if (attackType === "melee") {
-            const heroIsEngaged = gameState.enemies.some((e) => e.engaged_target === selectedHeroForAttack.name);
-            if (heroIsEngaged) {
-                msg.textContent = `Only enemies engaged with ${selectedHeroForAttack.name} can be attacked`;
-            } else {
-                msg.textContent = "No enemies in melee range (MEL)";
-            }
+            msg.textContent = `Only enemies engaged with ${selectedHeroForAttack.name} can be attacked`;
         } else if (attackType === "spell") {
             msg.textContent = "No enemies out of melee (OOM)";
         }

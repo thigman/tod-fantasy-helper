@@ -19,7 +19,7 @@ from data_loader import load_heroes_from_json, load_enemies_from_json
 
 import os
 
-VERSION = "0.1.1"
+VERSION = "0.1.6"
 
 app = FastAPI()
 

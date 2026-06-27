@@ -334,6 +334,42 @@ class GameSession:
                 self.enemy_acted.add(enemy.name)
                 continue
 
+            # Validate target is in valid range
+            # Ranged enemies (BOW) can only attack OOM targets
+            # A hero is OOM if no enemy is engaged with them
+            if enemy.weapon.name == "BOW":
+                hero_is_engaged = any(
+                    e.engaged_target == current_target.name 
+                    for e in self.enemies 
+                    if e.name != enemy.name
+                )
+                if hero_is_engaged:
+                    # Search for a valid OOM target
+                    oom_targets = [
+                        h for h in heroes_alive 
+                        if not any(e.engaged_target == h.name for e in self.enemies if e.name != enemy.name)
+                    ]
+                    if oom_targets:
+                        current_target = oom_targets[0]  # Pick first available OOM target
+                        enemy.focus_target = current_target.name
+                        enemy.focus_rounds = 2
+                    else:
+                        msg = f"{enemy.name} cannot find valid ranged targets"
+                        self.log.append(msg)
+                        self.enemy_acted.add(enemy.name)
+                        continue
+
+            # Melee enemies (AXE) in MEL range can ONLY attack their engaged target
+            if enemy.weapon.name == "AXE" and enemy.rng == RangeBand.MEL:
+                if enemy.engaged_target:
+                    # Must attack engaged target, cannot switch
+                    if current_target.name != enemy.engaged_target:
+                        msg = f"{enemy.name} is locked in melee with {enemy.engaged_target}, cannot attack {current_target.name}"
+                        self.log.append(msg)
+                        self.enemy_acted.add(enemy.name)
+                        continue
+                    # current_target is correct (the engaged target)
+
             # Check weapon/range constraints
             if enemy.weapon.name == "AXE" and enemy.rng == RangeBand.OOM:
                 msg = f"{enemy.name} wants to engage {current_target.name} but remains OOM."
