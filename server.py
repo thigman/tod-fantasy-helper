@@ -30,7 +30,8 @@ class NewEncounterRequest(BaseModel):
 
 class HeroAttackRequest(BaseModel):
     hero_name: str
-    enemy_name: str
+    enemy_name: Optional[str] = None
+    enemy_names: Optional[list[str]] = None
     spell_index: Optional[int] = None
 
 
@@ -150,7 +151,10 @@ async def hero_attack(request: HeroAttackRequest):
         raise HTTPException(status_code=400, detail="No active game session")
 
     result = current_session.hero_attack(
-        request.hero_name, request.enemy_name, request.spell_index
+        request.hero_name,
+        enemy_name=request.enemy_name,
+        enemy_names=request.enemy_names,
+        spell_index=request.spell_index,
     )
 
     if not result.get("success"):

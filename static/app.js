@@ -359,12 +359,141 @@ function selectEnemyForAttack(enemy) {
 
 async function castSpell(spellIndex) {
     closeModal("spellSelectModal");
-    selectedEnemyForAttack = null;
-    showEnemySelection("for spell");
-
-    // Store spell index for later use
     window.selectedSpellIndex = spellIndex;
+
+    // Fireball (index 1) is area spell - multi-select
+    if (spellIndex === 1) {
+        showAreaSpellTargetSelection();
+    } else {
+        // Magic Missile (index 0) - single target
+        selectedEnemyForAttack = null;
+        showEnemySelection("for spell");
+    }
 }
+
+function showAreaSpellTargetSelection() {
+    const modal = document.createElement("div");
+    modal.className = "modal show";
+    modal.id = "areaSpellModal";
+    modal.style.zIndex = "1000";
+
+    const content = document.createElement("div");
+    content.className = "modal-content";
+
+    const title = document.createElement("h2");
+    title.textContent = "Select Targets for Fireball";
+    title.style.color = "#4a9eff";
+    title.style.marginBottom = "15px";
+    content.appendChild(title);
+
+    const enemyList = document.createElement("div");
+    enemyList.style.marginBottom = "15px";
+
+    const availableEnemies = gameState.enemies.filter((e) => e.alive && e.rng === "OOM");
+
+    if (availableEnemies.length === 0) {
+        const msg = document.createElement("div");
+        msg.style.color = "#ff6b6b";
+        msg.textContent = "No OOM targets available";
+        enemyList.appendChild(msg);
+    } else {
+        const checkboxes = {};
+        availableEnemies.forEach((enemy) => {
+            const label = document.createElement("label");
+            label.style.display = "block";
+            label.style.marginBottom = "8px";
+            label.style.cursor = "pointer";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = enemy.name;
+            checkbox.style.marginRight = "8px";
+            checkboxes[enemy.name] = checkbox;
+
+            label.appendChild(checkbox);
+            label.appendChild(
+                document.createTextNode(
+                    `${enemy.name} (HP: ${enemy.hp}/${enemy.max_hp})`
+                )
+            );
+            enemyList.appendChild(label);
+        });
+
+        const buttonDiv = document.createElement("div");
+        buttonDiv.style.marginTop = "20px";
+        buttonDiv.style.display = "grid";
+        buttonDiv.style.gridTemplateColumns = "1fr 1fr";
+        buttonDiv.style.gap = "10px";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.className = "primary";
+        confirmBtn.textContent = "Confirm";
+        confirmBtn.onclick = async () => {
+            const selected = Object.keys(checkboxes)
+                .filter((name) => checkboxes[name].checked)
+                .map((name) => name);
+
+            if (selected.length === 0) {
+                alert("Select at least one target");
+                return;
+            }
+
+            const parent = modal.parentElement;
+            if (parent) parent.removeChild(modal);
+            await executeAreaAttack(selected);
+        };
+        buttonDiv.appendChild(confirmBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.onclick = () => {
+            const parent = modal.parentElement;
+            if (parent) parent.removeChild(modal);
+        };
+        buttonDiv.appendChild(cancelBtn);
+
+        content.appendChild(buttonDiv);
+    }
+
+    content.appendChild(enemyList);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+}
+
+async function executeAreaAttack(targetNames) {
+    if (!selectedHeroForAttack) return;
+
+    try {
+        const payload = {
+            hero_name: selectedHeroForAttack.name,
+            enemy_names: targetNames,
+            spell_index: window.selectedSpellIndex,
+        };
+
+        const response = await fetch(`${API_BASE}/hero-attack`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert("Attack failed: " + error.detail);
+            return;
+        }
+
+        gameState = await response.json();
+        updateDisplay();
+
+        selectedHeroForAttack = null;
+        selectedEnemyForAttack = null;
+        window.selectedSpellIndex = null;
+    } catch (error) {
+        console.error("Area attack error:", error);
+        alert("Failed to execute area spell");
+    }
+}
+
 
 async function executeAttack() {
     if (!selectedHeroForAttack || !selectedEnemyForAttack) return;

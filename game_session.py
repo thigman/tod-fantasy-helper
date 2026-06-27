@@ -112,13 +112,12 @@ class GameSession:
         """Get living heroes."""
         return [h.name for h in self.heroes if h.hp > 0]
 
-    def hero_attack(self, hero_name, enemy_name, spell_index=None):
-        """Process a hero attack."""
+    def hero_attack(self, hero_name, enemy_name=None, enemy_names=None, spell_index=None):
+        """Process a hero attack (single or area spell)."""
         hero = next((h for h in self.heroes if h.name == hero_name), None)
-        enemy = next((e for e in self.enemies if e.name == enemy_name), None)
-
-        if not hero or not enemy:
-            return {"success": False, "error": "Invalid hero or enemy"}
+        
+        if not hero:
+            return {"success": False, "error": "Hero not found"}
 
         # Check if hero already acted
         if hero_name in self.acted:
@@ -128,9 +127,26 @@ class GameSession:
         if hero.hp <= 0:
             return {"success": False, "error": f"{hero_name} is dead"}
 
-        # Check if enemy is alive
-        if enemy.hp <= 0:
-            return {"success": False, "error": f"{enemy_name} is dead"}
+        # Determine targets
+        targets = []
+        if enemy_names:
+            # Area spell - multiple targets
+            for ename in enemy_names:
+                e = next((en for en in self.enemies if en.name == ename and en.hp > 0), None)
+                if e:
+                    targets.append(e)
+            if not targets:
+                return {"success": False, "error": "No valid targets"}
+            is_area_spell = True
+        elif enemy_name:
+            # Single target
+            enemy = next((e for e in self.enemies if e.name == enemy_name), None)
+            if not enemy or enemy.hp <= 0:
+                return {"success": False, "error": f"{enemy_name} not found or dead"}
+            targets = [enemy]
+            is_area_spell = False
+        else:
+            return {"success": False, "error": "No target specified"}
 
         # Wizard spell attack
         if hero.weapon.name == "MM":
@@ -139,28 +155,44 @@ class GameSession:
                 self.log.append(msg)
                 return {"success": False, "error": msg}
 
-            if enemy.rng != RangeBand.OOM:
-                msg = f"{hero.name} cannot cast on {enemy.name}. Target must be OOM."
-                self.log.append(msg)
-                return {"success": False, "error": msg}
-
-            if spell_index == 0:
-                damage_expr = "1d8"
-                pen = 2
-                spell_name = "Magic Missile"
-            elif spell_index == 1:
-                damage_expr = "2d8"
-                pen = 0
-                spell_name = "Fireball"
+            # Area spell check
+            if is_area_spell:
+                if spell_index == 1:
+                    # Fireball - area spell, check all targets are OOM
+                    for target in targets:
+                        if target.rng != RangeBand.OOM:
+                            msg = f"{hero.name} cannot cast Fireball on {target.name}. Target must be OOM."
+                            self.log.append(msg)
+                            return {"success": False, "error": msg}
+                    damage_expr = "2d8"
+                    pen = 0
+                    spell_name = "Fireball"
+                else:
+                    return {"success": False, "error": "Invalid area spell"}
             else:
-                return {"success": False, "error": "Invalid spell"}
+                # Single-target spell
+                if targets[0].rng != RangeBand.OOM:
+                    msg = f"{hero.name} cannot cast on {targets[0].name}. Target must be OOM."
+                    self.log.append(msg)
+                    return {"success": False, "error": msg}
 
-            hit = random.randint(1, 20) + hero.intel >= 10 + enemy.dex
+                if spell_index == 0:
+                    damage_expr = "1d8"
+                    pen = 2
+                    spell_name = "Magic Missile"
+                elif spell_index == 1:
+                    damage_expr = "2d8"
+                    pen = 0
+                    spell_name = "Fireball"
+                else:
+                    return {"success": False, "error": "Invalid spell"}
+
+            hit = random.randint(1, 20) + hero.intel >= 10 + max(t.dex for t in targets)
 
         # Melee attack
         else:
-            if enemy.rng != RangeBand.MEL:
-                msg = f"{hero.name} cannot attack {enemy.name}. Target must be MEL."
+            if targets[0].rng != RangeBand.MEL:
+                msg = f"{hero.name} cannot attack {targets[0].name}. Target must be MEL."
                 self.log.append(msg)
                 return {"success": False, "error": msg}
 
@@ -168,31 +200,39 @@ class GameSession:
             pen = hero.weapon.pen
             spell_name = None
 
-            hit = random.randint(1, 20) + hero.ms >= 10 + enemy.ms
+            hit = random.randint(1, 20) + hero.ms >= 10 + targets[0].ms
 
         # Mark hero as acted
         self.acted.add(hero.name)
 
-        # Process hit
+        # Process damage to all targets
         if not hit:
-            msg = f"{hero.name} misses {enemy.name}"
+            if is_area_spell:
+                msg = f"{hero.name} casts {spell_name} but all targets evade!"
+            else:
+                msg = f"{hero.name} misses {targets[0].name}"
             self.log.append(msg)
             return {"success": True, "message": msg}
 
-        # Calculate damage
-        damage = max(1, roll(damage_expr) - max(enemy.arm - pen, 0))
-        enemy.hp -= damage
-        hero.damage_done += damage
+        # Calculate and apply damage
+        for target in targets:
+            damage = max(1, roll(damage_expr) - max(target.arm - pen, 0))
+            target.hp -= damage
+            hero.damage_done += damage
 
-        msg = f"{hero.name} hits {enemy.name} for {damage}"
-        if spell_name:
-            msg = f"{hero.name} casts {spell_name} on {enemy.name} for {damage}"
+            if is_area_spell:
+                msg = f"{hero.name} casts {spell_name} on {target.name} for {damage}"
+            else:
+                if spell_name:
+                    msg = f"{hero.name} casts {spell_name} on {target.name} for {damage}"
+                else:
+                    msg = f"{hero.name} hits {target.name} for {damage}"
 
-        self.log.append(msg)
+            self.log.append(msg)
 
-        if enemy.hp <= 0:
-            defeat_msg = f"{enemy.name} is defeated!"
-            self.log.append(defeat_msg)
+            if target.hp <= 0:
+                defeat_msg = f"{target.name} is defeated!"
+                self.log.append(defeat_msg)
 
         # Remove dead enemies
         self.enemies[:] = remove_dead(self.enemies)
@@ -202,7 +242,7 @@ class GameSession:
             self.battle_over = True
             self.battle_result = "HERO VICTORY"
 
-        return {"success": True, "message": msg}
+        return {"success": True, "message": "Attack resolved"}
 
     def enemy_turn(self):
         """Process enemy turn."""
