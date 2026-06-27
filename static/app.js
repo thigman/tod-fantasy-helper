@@ -511,6 +511,12 @@ function showEnemySelection(attackType = "melee") {
     // Filter by range requirement
     if (attackType === "melee") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "MEL");
+        
+        // If the hero is engaged with anyone, only allow attacking engaged enemies
+        const heroIsEngaged = gameState.enemies.some((e) => e.engaged_target === selectedHeroForAttack.name);
+        if (heroIsEngaged) {
+            availableEnemies = availableEnemies.filter((e) => e.engaged_target === selectedHeroForAttack.name);
+        }
     } else if (attackType === "spell") {
         availableEnemies = availableEnemies.filter((e) => e.rng === "OOM");
     }
@@ -520,7 +526,12 @@ function showEnemySelection(attackType = "melee") {
         msg.style.padding = "10px";
         msg.style.color = "#ff6b6b";
         if (attackType === "melee") {
-            msg.textContent = "No enemies in melee range (MEL)";
+            const heroIsEngaged = gameState.enemies.some((e) => e.engaged_target === selectedHeroForAttack.name);
+            if (heroIsEngaged) {
+                msg.textContent = `Only enemies engaged with ${selectedHeroForAttack.name} can be attacked`;
+            } else {
+                msg.textContent = "No enemies in melee range (MEL)";
+            }
         } else if (attackType === "spell") {
             msg.textContent = "No enemies out of melee (OOM)";
         }
@@ -588,6 +599,7 @@ function showAreaSpellTargetSelection() {
     enemyList.style.marginBottom = "15px";
 
     const availableEnemies = gameState.enemies.filter((e) => e.alive && e.rng === "OOM");
+    const checkboxes = {};
 
     if (availableEnemies.length === 0) {
         const msg = document.createElement("div");
@@ -595,7 +607,6 @@ function showAreaSpellTargetSelection() {
         msg.textContent = "No OOM targets available";
         enemyList.appendChild(msg);
     } else {
-        const checkboxes = {};
         availableEnemies.forEach((enemy) => {
             const label = document.createElement("label");
             label.style.display = "block";
@@ -616,44 +627,44 @@ function showAreaSpellTargetSelection() {
             );
             enemyList.appendChild(label);
         });
-
-        const buttonDiv = document.createElement("div");
-        buttonDiv.style.marginTop = "20px";
-        buttonDiv.style.display = "grid";
-        buttonDiv.style.gridTemplateColumns = "1fr 1fr";
-        buttonDiv.style.gap = "10px";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "primary";
-        confirmBtn.textContent = "Confirm";
-        confirmBtn.onclick = async () => {
-            const selected = Object.keys(checkboxes)
-                .filter((name) => checkboxes[name].checked)
-                .map((name) => name);
-
-            if (selected.length === 0) {
-                alert("Select at least one target");
-                return;
-            }
-
-            const parent = modal.parentElement;
-            if (parent) parent.removeChild(modal);
-            await executeAreaAttack(selected);
-        };
-        buttonDiv.appendChild(confirmBtn);
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.textContent = "Cancel";
-        cancelBtn.onclick = () => {
-            const parent = modal.parentElement;
-            if (parent) parent.removeChild(modal);
-        };
-        buttonDiv.appendChild(cancelBtn);
-
-        content.appendChild(buttonDiv);
     }
 
     content.appendChild(enemyList);
+
+    const buttonDiv = document.createElement("div");
+    buttonDiv.style.marginTop = "20px";
+    buttonDiv.style.display = "grid";
+    buttonDiv.style.gridTemplateColumns = "1fr 1fr";
+    buttonDiv.style.gap = "10px";
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.className = "primary";
+    confirmBtn.textContent = "Confirm";
+    confirmBtn.onclick = async () => {
+        const selected = Object.keys(checkboxes)
+            .filter((name) => checkboxes[name].checked)
+            .map((name) => name);
+
+        if (selected.length === 0) {
+            alert("Select at least one target");
+            return;
+        }
+
+        const parent = modal.parentElement;
+        if (parent) parent.removeChild(modal);
+        await executeAreaAttack(selected);
+    };
+    buttonDiv.appendChild(confirmBtn);
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.onclick = () => {
+        const parent = modal.parentElement;
+        if (parent) parent.removeChild(modal);
+    };
+    buttonDiv.appendChild(cancelBtn);
+
+    content.appendChild(buttonDiv);
     modal.appendChild(content);
     document.body.appendChild(modal);
 }
